@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, X, Upload, ImagePlus, Search } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Plus, Pencil, Trash2, X, Upload, ImagePlus, Search, Blend, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { publicApi, adminApi } from "../../lib/api";
 import { formatRupiah } from "../../mock/mock";
@@ -128,6 +129,26 @@ const AdminProducts = () => {
       </div>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {catFilter === "house-blend" && (
+          <div className="col-span-full rounded-3xl bg-[#1B7A43] text-[#F6EFE4] p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="h-14 w-14 rounded-full bg-[#F6EFE4] text-[#1B7A43] flex items-center justify-center flex-shrink-0">
+              <Blend className="h-6 w-6" />
+            </div>
+            <div className="flex-1">
+              <div className="font-serif-warm text-2xl">House Blend dikelola terpisah</div>
+              <p className="text-sm text-[#F6EFE4]/85 mt-1">
+                Karena House Blend memakai <b>sistem rasio</b> (30/70 sampai 70/30) dengan harga berbeda per rasio,
+                pengelolaannya ada di menu khusus <b>House Blend</b>, bukan di daftar produk biasa.
+              </p>
+            </div>
+            <Link
+              to="/admin/house-blend"
+              className="rounded-full bg-[#C9A227] text-[#2A1D0B] px-5 py-2.5 text-sm font-semibold inline-flex items-center gap-1 hover:bg-[#E4C25A] transition-colors"
+            >
+              Buka House Blend <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        )}
         {filtered.map((p) => (
           <div key={p.id} className="rounded-2xl bg-[#FBF6EC] border border-[#3B2412]/10 overflow-hidden">
             <div className="aspect-[4/3] bg-[#3B2412]/5 overflow-hidden">
@@ -159,7 +180,7 @@ const AdminProducts = () => {
             </div>
           </div>
         ))}
-        {filtered.length === 0 && (
+        {filtered.length === 0 && catFilter !== "house-blend" && (
           <div className="col-span-full text-center py-16 text-[#3B2412]/60">
             Tidak ada produk yang cocok.
           </div>
