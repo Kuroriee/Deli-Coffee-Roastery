@@ -11,6 +11,9 @@ const processColor = {
   Peaberry: "bg-[#3B2412] text-[#F6EFE4]",
   Luwak: "bg-[#2A1D0B] text-[#C9A227]",
   "Semi Washed": "bg-[#F6EFE4] text-[#3B2412] border border-[#3B2412]/25",
+  Gayo: "bg-[#1B7A43] text-[#F6EFE4]",
+  Lintong: "bg-[#5A3A22] text-[#F6EFE4]",
+  Mandheling: "bg-[#3B2412] text-[#F6EFE4]",
   "Medium Roast": "bg-[#8A5A3C] text-[#F6EFE4]",
   "Medium–Dark": "bg-[#5A3A22] text-[#F6EFE4]",
   Caramel: "bg-[#C9A227] text-[#2A1D0B]"
@@ -21,7 +24,7 @@ const productImageFor = (p) => {
   const map = {
     "arabica-specialty":
       "https://images.unsplash.com/photo-1524350876685-274059332603?crop=entropy&cs=srgb&fm=jpg&q=85",
-    "arabica-semi-washed":
+    "arabica-premium":
       "https://images.unsplash.com/photo-1562051036-e0eea191d42f?crop=entropy&cs=srgb&fm=jpg&q=85",
     robusta: "https://images.unsplash.com/photo-1512372388054-a322888e67a6",
     "house-blend": "https://images.unsplash.com/photo-1598825659313-7264573d08db"

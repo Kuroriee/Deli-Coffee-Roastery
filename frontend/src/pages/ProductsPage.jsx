@@ -38,7 +38,7 @@ const ProductsPage = () => {
           <p className="mt-3 max-w-2xl text-[#F6EFE4]/85">
             {activeCategory
               ? activeCategory.description
-              : "Jelajahi seluruh lini kopi Deli Coffee — dari specialty process eksperimental, semi washed klasik, robusta bold, hingga house blend andalan."}
+              : "Jelajahi seluruh lini kopi Deli Coffee — dari specialty process eksperimental, arabika premium klasik, robusta bold, hingga house blend andalan."}
           </p>
         </div>
       </section>

@@ -36,11 +36,11 @@ export const categories = [
       "https://images.unsplash.com/photo-1524350876685-274059332603?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwxfHxjb2ZmZWUlMjBiYWdzfGVufDB8fHx8MTc4NjMwMDQ3OHww&ixlib=rb-4.1.0&q=85"
   },
   {
-    id: "arabica-semi-washed",
-    name: "Arabica Semi Washed",
-    short: "Semi Washed",
+    id: "arabica-premium",
+    name: "Arabica Premium",
+    short: "Premium",
     description:
-      "Gayo, Lintong, Mandheling — kelas Specialty & Premium. Body seimbang, acidity bersih, khas dataran tinggi Sumatera.",
+      "Gayo, Lintong, Mandheling — pilihan kelas Specialty & Premium. Body seimbang, acidity bersih, khas dataran tinggi Sumatera.",
     image:
       "https://images.unsplash.com/photo-1562051036-e0eea191d42f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwyfHxjb2ZmZWUlMjBiYWdzfGVufDB8fHx8MTc4NjMwMDQ3OHww&ixlib=rb-4.1.0&q=85"
   },
@@ -73,13 +73,13 @@ export const products = [
   { id: "as-honey", category: "arabica-specialty", name: "Arabica Honey Process", process: "Honey", price: 300000, desc: "Manis madu, body medium, acidity lembut." },
   { id: "as-natural", category: "arabica-specialty", name: "Arabica Natural Process", process: "Natural", price: 300000, desc: "Fruity, floral, dijemur bersama ceri kopinya." },
 
-  // Arabica Semi Washed
-  { id: "aw-gayo-sp", category: "arabica-semi-washed", name: "Gayo Specialty", process: "Semi Washed", price: 250000, region: "Gayo", desc: "Aceh Tengah — herbal, earthy, aftertaste panjang." },
-  { id: "aw-lintong-sp", category: "arabica-semi-washed", name: "Lintong Specialty", process: "Semi Washed", price: 250000, region: "Lintong", desc: "Sumatera Utara — spicy, cokelat, body tebal." },
-  { id: "aw-mandheling-sp", category: "arabica-semi-washed", name: "Mandheling Specialty", process: "Semi Washed", price: 250000, region: "Mandheling", desc: "Bold, earthy, hint tembakau dan kayu manis." },
-  { id: "aw-gayo-pr", category: "arabica-semi-washed", name: "Gayo Premium", process: "Semi Washed", price: 180000, region: "Gayo", desc: "Karakter Gayo dengan harga bersahabat." },
-  { id: "aw-lintong-pr", category: "arabica-semi-washed", name: "Lintong Premium", process: "Semi Washed", price: 180000, region: "Lintong", desc: "Kopi rumahan berkualitas dari Lintong." },
-  { id: "aw-mandheling-pr", category: "arabica-semi-washed", name: "Mandheling Premium", process: "Semi Washed", price: 180000, region: "Mandheling", desc: "Rasa Mandheling klasik untuk sehari-hari." },
+  // Arabica Premium (dulu Semi Washed)
+  { id: "aw-gayo-sp", category: "arabica-premium", name: "Gayo Specialty", process: "Gayo", price: 250000, region: "Gayo", desc: "Aceh Tengah — herbal, earthy, aftertaste panjang." },
+  { id: "aw-lintong-sp", category: "arabica-premium", name: "Lintong Specialty", process: "Lintong", price: 250000, region: "Lintong", desc: "Sumatera Utara — spicy, cokelat, body tebal." },
+  { id: "aw-mandheling-sp", category: "arabica-premium", name: "Mandheling Specialty", process: "Mandheling", price: 250000, region: "Mandheling", desc: "Bold, earthy, hint tembakau dan kayu manis." },
+  { id: "aw-gayo-pr", category: "arabica-premium", name: "Gayo Premium", process: "Gayo", price: 180000, region: "Gayo", desc: "Karakter Gayo dengan harga bersahabat." },
+  { id: "aw-lintong-pr", category: "arabica-premium", name: "Lintong Premium", process: "Lintong", price: 180000, region: "Lintong", desc: "Kopi rumahan berkualitas dari Lintong." },
+  { id: "aw-mandheling-pr", category: "arabica-premium", name: "Mandheling Premium", process: "Mandheling", price: 180000, region: "Mandheling", desc: "Rasa Mandheling klasik untuk sehari-hari." },
 
   // Robusta
   { id: "ro-medium", category: "robusta", name: "Robusta Medium", process: "Medium Roast", price: 120000, desc: "Body tebal, pahit seimbang, cocok untuk susu." },
