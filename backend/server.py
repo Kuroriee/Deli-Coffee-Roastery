@@ -16,6 +16,7 @@ from models import (
     ShippingZone, ShippingZoneUpsert,
     Testimonial, TestimonialUpsert,
     Settings,
+    Order, OrderCreate, OrderStatusUpdate,
 )
 from auth import (
     fetch_emergent_session, set_session_cookie, clear_session_cookie,
@@ -313,6 +314,130 @@ async def google_reviews():
         "review_count": data.get("userRatingCount"),
         "reviews": reviews,
     }
+
+
+# ---------- ORDERS ----------
+def _build_wa_message(order: dict) -> str:
+    def fr(n):
+        return "Rp" + f"{int(n):,}".replace(",", ".")
+    lines = [
+        f"Halo {order.get('admin_name') or 'Deli Coffee'}, saya ingin memesan:",
+        "",
+        f"Nama    : {order['customer_name']}",
+        f"No. HP  : {order['customer_phone']}",
+        "",
+        "Rincian pesanan:",
+    ]
+    for idx, it in enumerate(order["items"], 1):
+        variant = f" — {it.get('variant')}" if it.get("variant") else ""
+        lines.append(f"{idx}. {it['name']}{variant} × {it['qty']} kg  ({fr(it['price'])}/kg)")
+    lines.append("")
+    lines.append(f"Subtotal   : {fr(order['subtotal'])}")
+    if order.get("zone_name"):
+        lines.append(f"Pengiriman : {order['zone_name']} — {fr(order['shipping_cost'])}")
+    lines.append(f"Estimasi total: {fr(order['total'])}.")
+    if order.get("customer_note"):
+        lines.append("")
+        lines.append(f"Catatan: {order['customer_note']}")
+    lines.append("")
+    lines.append("Mohon info ketersediaan & konfirmasi pengiriman. Terima kasih!")
+    return "\n".join(lines)
+
+
+def _wa_url(phone: str, message: str) -> str:
+    from urllib.parse import quote
+    p = "".join(ch for ch in (phone or "") if ch.isdigit())
+    if p.startswith("0"):
+        p = "62" + p[1:]
+    return f"https://wa.me/{p}?text={quote(message)}"
+
+
+@api.post("/orders")
+async def create_order(payload: OrderCreate):
+    items = [it.model_dump() for it in payload.items]
+    subtotal = sum(int(it["price"]) * int(it["qty"]) for it in items)
+    shipping = int(payload.shipping_cost or 0)
+    total = subtotal + shipping
+    order = {
+        "id": f"ord_{uuid.uuid4().hex[:12]}",
+        "customer_name": payload.customer_name.strip(),
+        "customer_phone": payload.customer_phone.strip(),
+        "customer_note": (payload.customer_note or "").strip(),
+        "items": items,
+        "zone_id": payload.zone_id or "",
+        "zone_name": payload.zone_name or "",
+        "subtotal": subtotal,
+        "shipping_cost": shipping,
+        "total": total,
+        "admin_phone": payload.admin_phone,
+        "admin_name": payload.admin_name or "",
+        "status": "new",
+        "created_at": datetime.now(timezone.utc),
+    }
+    if not order["customer_name"] or not order["customer_phone"]:
+        raise HTTPException(400, "Nama dan nomor HP wajib diisi")
+    await db.orders.insert_one(order)
+    message = _build_wa_message(order)
+    return {
+        "ok": True,
+        "order_id": order["id"],
+        "wa_url": _wa_url(payload.admin_phone, message),
+        "message": message,
+    }
+
+
+@api.get("/admin/orders", response_model=List[Order])
+async def list_orders(request: Request, status: Optional[str] = None, limit: int = 100):
+    await require_admin(request, db)
+    q = {}
+    if status:
+        q["status"] = status
+    docs = await db.orders.find(q, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    return docs
+
+
+@api.patch("/admin/orders/{oid}")
+async def update_order_status(oid: str, payload: OrderStatusUpdate, request: Request):
+    await require_admin(request, db)
+    if payload.status not in ("new", "fulfilled", "cancelled"):
+        raise HTTPException(400, "Status tidak valid")
+    r = await db.orders.update_one({"id": oid}, {"$set": {"status": payload.status}})
+    if r.matched_count == 0:
+        raise HTTPException(404, "Pesanan tidak ditemukan")
+    return {"ok": True}
+
+
+@api.delete("/admin/orders/{oid}")
+async def delete_order(oid: str, request: Request):
+    await require_admin(request, db)
+    r = await db.orders.delete_one({"id": oid})
+    return {"deleted": r.deleted_count}
+
+
+# ---------- BULK IMAGE ASSIGN ----------
+from pydantic import BaseModel as _BM
+
+class BulkAssign(_BM):
+    product_id: str
+    image: str
+
+
+class BulkAssignPayload(_BM):
+    assignments: List[BulkAssign]
+
+
+@api.post("/admin/products/bulk-images")
+async def bulk_assign_images(payload: BulkAssignPayload, request: Request):
+    await require_admin(request, db)
+    updated = 0
+    not_found = []
+    for a in payload.assignments:
+        r = await db.products.update_one({"id": a.product_id}, {"$set": {"image": a.image}})
+        if r.matched_count:
+            updated += 1
+        else:
+            not_found.append(a.product_id)
+    return {"updated": updated, "not_found": not_found}
 
 
 # ---------------- root ----------------

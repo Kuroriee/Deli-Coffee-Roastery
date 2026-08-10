@@ -2,49 +2,39 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Minus, Plus, Trash2, MessageCircle, Instagram, ShoppingBag,
-  ArrowRight, Truck, Info,
+  ArrowRight, Truck, Info, User, Phone, StickyNote, Loader2,
 } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useCatalog } from "../hooks/useCatalog";
-import { buildWhatsAppLink, formatRupiah } from "../mock/mock";
+import { formatRupiah } from "../mock/mock";
+import { publicApi } from "../lib/api";
+import { toast } from "sonner";
 
-const buildCartMessageWithZone = (items, zone) => {
-  if (!items.length) return "";
-  const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-  const shipping = zone ? zone.cost : 0;
-  const total = subtotal + shipping;
-  const body = items
-    .map(
-      (i, idx) =>
-        `${idx + 1}. ${i.name}${i.variant ? ` — ${i.variant}` : ""} × ${i.qty} kg  (${formatRupiah(
-          i.price
-        )}/kg)`
-    )
-    .join("\n");
-  const lines = [
-    "Halo Deli Coffee, saya ingin memesan beberapa produk:",
-    "",
-    body,
-    "",
-    `Subtotal   : ${formatRupiah(subtotal)}`,
-  ];
-  if (zone) {
-    lines.push(`Pengiriman : ${zone.name} — ${formatRupiah(shipping)}${zone.eta ? ` (${zone.eta})` : ""}`);
-  }
-  lines.push(`Estimasi total: ${formatRupiah(total)}.`);
-  lines.push("");
-  lines.push("Mohon info ketersediaan & konfirmasi pengiriman. Terima kasih!");
-  return lines.join("\n");
-};
+const STORAGE_CUSTOMER = "deli_coffee_customer_v1";
 
 const CartPage = () => {
   const { items, updateQty, removeItem, clear, total: subtotal, count } = useCart();
   const { brand, zones } = useCatalog();
   const [zoneId, setZoneId] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [customer, setCustomer] = useState(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_CUSTOMER);
+      return raw ? JSON.parse(raw) : { name: "", phone: "", note: "" };
+    } catch {
+      return { name: "", phone: "", note: "" };
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_CUSTOMER, JSON.stringify(customer));
+    } catch {}
+  }, [customer]);
 
   useEffect(() => {
     if (zones && zones.length && !zoneId) {
-      // default to pickup if exists (cost 0), else first
       const pickup = zones.find((z) => z.cost === 0);
       setZoneId((pickup || zones[0]).id);
     }
@@ -54,14 +44,46 @@ const CartPage = () => {
   const shipping = zone?.cost || 0;
   const total = subtotal + shipping;
 
-  const message = buildCartMessageWithZone(items, zone);
   const admins = brand.admins || [];
-  const waLink1 = admins[0]
-    ? buildWhatsAppLink(admins[0].phone, message)
-    : "#";
-  const waLink2 = admins[1]
-    ? buildWhatsAppLink(admins[1].phone, message)
-    : null;
+
+  const canSubmit =
+    items.length > 0 &&
+    customer.name.trim().length >= 2 &&
+    customer.phone.trim().length >= 6;
+
+  const submitOrder = async (admin) => {
+    if (!canSubmit) {
+      toast.error("Isi nama & nomor HP terlebih dahulu (min 2 & 6 karakter)");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await publicApi.createOrder({
+        customer_name: customer.name.trim(),
+        customer_phone: customer.phone.trim(),
+        customer_note: customer.note?.trim() || "",
+        items: items.map((i) => ({
+          product_id: i.id,
+          name: i.name,
+          variant: i.variant || "",
+          price: Number(i.price),
+          qty: Number(i.qty),
+        })),
+        zone_id: zone?.id || "",
+        zone_name: zone?.name || "",
+        shipping_cost: shipping,
+        admin_phone: admin.phone,
+        admin_name: admin.name,
+      });
+      // open WA in new tab
+      window.open(res.wa_url, "_blank", "noopener,noreferrer");
+      toast.success("Pesanan dicatat. Membuka WhatsApp…");
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Gagal membuat pesanan");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-5 lg:px-8 py-12 md:py-16">
@@ -70,8 +92,8 @@ const CartPage = () => {
           <div className="text-xs uppercase tracking-[0.3em] text-[#1B7A43] font-semibold">Keranjang Pesanan</div>
           <h1 className="font-serif-warm text-4xl md:text-5xl mt-2 text-[#3B2412]">Rangkuman pesanan Anda</h1>
           <p className="mt-2 text-[#3B2412]/75 max-w-xl">
-            Kami tidak memakai payment gateway. Pilih zona pengiriman lalu tekan “Pesan Sekarang” — ringkasan
-            lengkap otomatis dikirim ke WhatsApp admin.
+            Isi kontak Anda, pilih zona pengiriman, lalu tekan “Pesan Sekarang” — ringkasan otomatis
+            terkirim ke WhatsApp admin dan tercatat di sistem kami.
           </p>
         </div>
         {items.length > 0 && (
@@ -95,6 +117,7 @@ const CartPage = () => {
       ) : (
         <div className="mt-10 grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-4">
+            {/* Items */}
             {items.map((item) => (
               <div key={`${item.id}-${item.variant || ""}`} className="rounded-2xl border border-[#3B2412]/10 bg-[#FBF6EC] p-4 md:p-5 flex flex-col sm:flex-row gap-4">
                 <div className="h-20 w-20 rounded-xl bg-[#3B2412] text-[#F6EFE4] flex items-center justify-center font-serif-warm text-xl flex-shrink-0">
@@ -126,7 +149,56 @@ const CartPage = () => {
               </div>
             ))}
 
-            {/* Shipping zone selector */}
+            {/* Customer contact */}
+            <div className="rounded-2xl border border-[#3B2412]/10 bg-[#FBF6EC] p-5">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-[#1B7A43]" />
+                <div className="text-xs uppercase tracking-widest text-[#3B2412]/60 font-semibold">
+                  Kontak Anda
+                </div>
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-[11px] uppercase tracking-widest text-[#3B2412]/60 font-semibold">Nama lengkap</label>
+                  <div className="mt-1 flex items-center gap-2 bg-[#F6EFE4] rounded-xl border border-[#3B2412]/20 px-3">
+                    <User className="h-4 w-4 text-[#3B2412]/40" />
+                    <input
+                      value={customer.name}
+                      onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
+                      placeholder="mis. Rina P."
+                      className="flex-1 bg-transparent py-2.5 text-sm outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] uppercase tracking-widest text-[#3B2412]/60 font-semibold">No. HP / WA</label>
+                  <div className="mt-1 flex items-center gap-2 bg-[#F6EFE4] rounded-xl border border-[#3B2412]/20 px-3">
+                    <Phone className="h-4 w-4 text-[#3B2412]/40" />
+                    <input
+                      value={customer.phone}
+                      onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
+                      placeholder="0812-xxxx-xxxx"
+                      className="flex-1 bg-transparent py-2.5 text-sm outline-none"
+                      inputMode="tel"
+                    />
+                  </div>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-[11px] uppercase tracking-widest text-[#3B2412]/60 font-semibold">Catatan (opsional)</label>
+                  <div className="mt-1 flex items-start gap-2 bg-[#F6EFE4] rounded-xl border border-[#3B2412]/20 px-3">
+                    <StickyNote className="h-4 w-4 text-[#3B2412]/40 mt-2.5" />
+                    <textarea
+                      value={customer.note}
+                      onChange={(e) => setCustomer({ ...customer, note: e.target.value })}
+                      placeholder="Grind halus, pengiriman siang, dsb."
+                      className="flex-1 bg-transparent py-2.5 text-sm outline-none min-h-[60px] resize-y"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Shipping zones */}
             {zones && zones.length > 0 && (
               <div className="rounded-2xl border border-[#3B2412]/10 bg-[#FBF6EC] p-5">
                 <div className="flex items-center gap-2">
@@ -170,34 +242,39 @@ const CartPage = () => {
           <aside className="lg:sticky lg:top-24 h-fit rounded-3xl bg-[#3B2412] text-[#F6EFE4] p-6">
             <h2 className="font-serif-warm text-2xl">Ringkasan</h2>
             <div className="mt-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-[#F6EFE4]/75">Item</span>
-                <span>{count} kg</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#F6EFE4]/75">Subtotal</span>
-                <span>{formatRupiah(subtotal)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[#F6EFE4]/75">Pengiriman{zone ? ` — ${zone.name}` : ""}</span>
-                <span>{shipping === 0 ? "Gratis" : formatRupiah(shipping)}</span>
-              </div>
-              <div className="flex justify-between pt-2 border-t border-[#F6EFE4]/10">
-                <span className="font-semibold">Estimasi total</span>
-                <span className="font-bold text-[#C9A227]">{formatRupiah(total)}</span>
-              </div>
+              <div className="flex justify-between"><span className="text-[#F6EFE4]/75">Item</span><span>{count} kg</span></div>
+              <div className="flex justify-between"><span className="text-[#F6EFE4]/75">Subtotal</span><span>{formatRupiah(subtotal)}</span></div>
+              <div className="flex justify-between"><span className="text-[#F6EFE4]/75">Pengiriman{zone ? ` — ${zone.name}` : ""}</span><span>{shipping === 0 ? "Gratis" : formatRupiah(shipping)}</span></div>
+              <div className="flex justify-between pt-2 border-t border-[#F6EFE4]/10"><span className="font-semibold">Estimasi total</span><span className="font-bold text-[#C9A227]">{formatRupiah(total)}</span></div>
             </div>
+
+            {!canSubmit && (
+              <div className="mt-4 text-xs bg-[#C9A227]/20 border border-[#C9A227]/40 rounded-xl p-3 text-[#F6EFE4]">
+                Isi nama & nomor HP di atas untuk mengaktifkan tombol Pesan Sekarang.
+              </div>
+            )}
 
             <div className="mt-6 space-y-2">
               {admins[0] && (
-                <a href={waLink1} target="_blank" rel="noopener noreferrer" className="btn-amber w-full rounded-full h-12 inline-flex items-center justify-center gap-2 text-sm font-bold">
-                  <MessageCircle className="h-4 w-4" /> Pesan Sekarang — WhatsApp {admins[0].name}
-                </a>
+                <button
+                  type="button"
+                  disabled={!canSubmit || submitting}
+                  onClick={() => submitOrder(admins[0])}
+                  className="btn-amber w-full rounded-full h-12 inline-flex items-center justify-center gap-2 text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+                  Pesan Sekarang — WhatsApp {admins[0].name}
+                </button>
               )}
-              {waLink2 && (
-                <a href={waLink2} target="_blank" rel="noopener noreferrer" className="w-full rounded-full h-11 inline-flex items-center justify-center gap-2 text-sm font-semibold bg-[#1B7A43] hover:bg-[#145F34] transition-colors">
+              {admins[1] && (
+                <button
+                  type="button"
+                  disabled={!canSubmit || submitting}
+                  onClick={() => submitOrder(admins[1])}
+                  className="w-full rounded-full h-11 inline-flex items-center justify-center gap-2 text-sm font-semibold bg-[#1B7A43] hover:bg-[#145F34] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <MessageCircle className="h-4 w-4" /> Alternatif: {admins[1].name}
-                </a>
+                </button>
               )}
               <a href={brand.instagramUrl} target="_blank" rel="noopener noreferrer" className="w-full rounded-full h-11 inline-flex items-center justify-center gap-2 text-sm font-semibold border border-[#F6EFE4]/40 hover:bg-[#F6EFE4] hover:text-[#3B2412] transition-colors">
                 <Instagram className="h-4 w-4" /> Chat via Instagram
@@ -205,7 +282,7 @@ const CartPage = () => {
             </div>
 
             <div className="mt-6 text-[10px] uppercase tracking-widest text-[#F6EFE4]/50">
-              Tanpa checkout online — semua konfirmasi dilakukan langsung dengan admin.
+              Pesanan tercatat di sistem kami sebagai referensi. Konfirmasi tetap dilakukan via chat.
             </div>
           </aside>
         </div>

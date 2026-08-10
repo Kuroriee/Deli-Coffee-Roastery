@@ -23,6 +23,8 @@ import AdminHouseBlend from "./pages/admin/AdminHouseBlend";
 import AdminShipping from "./pages/admin/AdminShipping";
 import AdminTestimonials from "./pages/admin/AdminTestimonials";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminOrders from "./pages/admin/AdminOrders";
+import AdminBulkUpload from "./pages/admin/AdminBulkUpload";
 
 // Callback intercept: if URL fragment contains session_id, render AuthCallback
 const AppRouter = () => {
@@ -46,7 +48,9 @@ const AppRouter = () => {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
+          <Route path="pesanan" element={<AdminOrders />} />
           <Route path="produk" element={<AdminProducts />} />
+          <Route path="foto" element={<AdminBulkUpload />} />
           <Route path="kategori" element={<AdminCategories />} />
           <Route path="house-blend" element={<AdminHouseBlend />} />
           <Route path="ongkir" element={<AdminShipping />} />

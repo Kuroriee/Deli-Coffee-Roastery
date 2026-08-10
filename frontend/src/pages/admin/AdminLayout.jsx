@@ -11,12 +11,16 @@ import {
   Settings as SettingsIcon,
   LogOut,
   ExternalLink,
+  ClipboardList,
+  ImagePlus,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 const NAV = [
   { to: "/admin", end: true, icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/admin/pesanan", icon: ClipboardList, label: "Pesanan" },
   { to: "/admin/produk", icon: Package, label: "Produk" },
+  { to: "/admin/foto", icon: ImagePlus, label: "Import Foto" },
   { to: "/admin/kategori", icon: Tag, label: "Kategori" },
   { to: "/admin/house-blend", icon: Blend, label: "House Blend" },
   { to: "/admin/ongkir", icon: Truck, label: "Zona Ongkir" },

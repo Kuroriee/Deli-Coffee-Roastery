@@ -195,6 +195,36 @@ backend:
         agent: "testing"
         comment: "✅ PASSED (2 tests): GET /api/settings returns settings with all required fields (brand_name, full_name, etc). PUT /api/admin/settings updates settings (200), verified via public GET /api/settings endpoint. Settings persist correctly (tested by updating to test values, verifying, then restoring original values)."
 
+  - task: "Orders CRUD (public create + admin management)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/orders (public) creates order, calculates subtotal/total, generates WhatsApp URL with formatted message. GET /api/admin/orders lists orders with optional status filter. PATCH /api/admin/orders/{id} updates status (new/fulfilled/cancelled). DELETE /api/admin/orders/{id} deletes order. All admin endpoints require authentication."
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED (11 tests): POST /api/orders creates order with correct wa_url (https://wa.me/62812...), message contains 'Nama    : Test Buyer' and 'Subtotal   : Rp800.000', MongoDB document has subtotal=800000, shipping_cost=15000, total=815000, status='new'. Validation works (empty customer_name returns 400). GET /api/admin/orders without auth returns 401, with admin Bearer returns 200 with list. Status filters work correctly (?status=new, ?status=fulfilled). PATCH updates status to fulfilled (200), invalid status returns 400, non-existent id returns 404. DELETE returns deleted:1 and removes from MongoDB."
+
+  - task: "Bulk image assignment for products"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/admin/products/bulk-images accepts array of {product_id, image} assignments. Updates existing products with base64 images, returns {updated: count, not_found: [ids]}. Admin-only endpoint."
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED (2 tests): POST /api/admin/products/bulk-images with 2 assignments (1 valid 'as-wine', 1 invalid 'ghost-id-nope') returns {updated:1, not_found:['ghost-id-nope']}. Verified 'as-wine' product image was updated via GET /api/products?category=arabica-specialty. Without auth returns 401."
+
 frontend:
   - task: "Customer pages now fetch from API via useCatalog hook"
     implemented: true
@@ -235,7 +265,7 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 2
+  test_sequence: 3
 
 test_plan:
   current_focus: []
@@ -280,3 +310,38 @@ agent_communication:
       
       All endpoints return correct HTTP status codes and response data.
       No critical issues found. Backend is production-ready.
+  - agent: "main"
+    message: |
+      NEW FEATURES ADDED: Orders management + bulk image assignment. Please test:
+        - POST /api/orders (public) - create order with WhatsApp integration
+        - GET /api/admin/orders (with/without auth, with status filters)
+        - PATCH /api/admin/orders/{id} - update order status
+        - DELETE /api/admin/orders/{id}
+        - POST /api/admin/products/bulk-images - bulk assign images to products
+        - Verify auth checks on new admin endpoints
+  - agent: "testing"
+    message: |
+      ✅ ALL NEW BACKEND TESTS PASSED (13/13 tests)
+      
+      Test run completed at: https://shop-creator-274.preview.emergentagent.com/api
+      Total tests executed: 41 (28 existing + 13 new)
+      
+      NEW FEATURES TEST COVERAGE:
+      
+      1. Orders Management (11 tests) - All working correctly ✅
+         - POST /api/orders (public): Creates order with correct wa_url (https://wa.me/62812...), message formatting verified ('Nama    : Test Buyer', 'Subtotal   : Rp800.000')
+         - MongoDB verification: subtotal=800000, shipping_cost=15000, total=815000, status='new'
+         - Validation: Empty customer_name returns 400 ✅
+         - GET /api/admin/orders: Without auth returns 401 ✅, with admin Bearer returns 200 with list ✅
+         - Status filters: ?status=new and ?status=fulfilled work correctly ✅
+         - PATCH /api/admin/orders/{id}: Updates status to fulfilled (200) ✅, invalid status returns 400 ✅, non-existent id returns 404 ✅
+         - DELETE /api/admin/orders/{id}: Returns deleted:1 and removes from MongoDB ✅
+      
+      2. Bulk Image Assignment (2 tests) - All working correctly ✅
+         - POST /api/admin/products/bulk-images: Correctly updates existing product 'as-wine' and reports 'ghost-id-nope' as not found
+         - Response format verified: {updated:1, not_found:['ghost-id-nope']} ✅
+         - Product image update verified via GET /api/products?category=arabica-specialty ✅
+         - Auth check: Without auth returns 401 ✅
+      
+      SUMMARY:
+      All 41 backend tests passed. No critical issues found. All new endpoints working as expected with proper auth checks, validation, and data persistence.

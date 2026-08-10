@@ -560,6 +560,262 @@ test("PUT /api/admin/settings updates and persists settings", test_update_settin
 
 print()
 print("=" * 80)
+print("SECTION 4: NEW FEATURES - ORDERS & BULK IMAGE ASSIGNMENT")
+print("=" * 80)
+
+# Test order creation (public endpoint)
+test_order_id = None
+
+def test_create_order_public():
+    global test_order_id
+    payload = {
+        "customer_name": "Test Buyer",
+        "customer_phone": "08123456789",
+        "customer_note": "cek",
+        "items": [
+            {
+                "product_id": "as-wine",
+                "name": "Arabica Wine Process",
+                "price": 400000,
+                "qty": 2
+            }
+        ],
+        "zone_id": "",
+        "zone_name": "Medan Kota",
+        "shipping_cost": 15000,
+        "admin_phone": "081263680926",
+        "admin_name": "Deni"
+    }
+    r = requests.post(f"{API_URL}/orders", json=payload)
+    assert_status(r, 200)
+    data = r.json()
+    assert_json_field(data, 'ok', True)
+    if 'order_id' not in data:
+        raise AssertionError("Response should have 'order_id' field")
+    if 'wa_url' not in data:
+        raise AssertionError("Response should have 'wa_url' field")
+    if 'message' not in data:
+        raise AssertionError("Response should have 'message' field")
+    
+    # Verify wa_url format
+    wa_url = data['wa_url']
+    if not wa_url.startswith('https://wa.me/62812'):
+        raise AssertionError(f"wa_url should start with https://wa.me/62812, got: {wa_url[:50]}")
+    if 'text=' not in wa_url:
+        raise AssertionError("wa_url should contain url-encoded message")
+    
+    # Verify message content
+    message = data['message']
+    if 'Nama    : Test Buyer' not in message:
+        raise AssertionError(f"Message should contain customer name, got: {message[:100]}")
+    if 'Subtotal   : Rp800.000' not in message:
+        raise AssertionError(f"Message should contain subtotal Rp800.000, got: {message}")
+    
+    test_order_id = data['order_id']
+    print(f"  Created order with id: {test_order_id}")
+    
+    # Verify order in MongoDB
+    order = db.orders.find_one({"id": test_order_id})
+    if not order:
+        raise AssertionError(f"Order {test_order_id} not found in MongoDB")
+    if order['subtotal'] != 800000:
+        raise AssertionError(f"Expected subtotal 800000, got {order['subtotal']}")
+    if order['shipping_cost'] != 15000:
+        raise AssertionError(f"Expected shipping_cost 15000, got {order['shipping_cost']}")
+    if order['total'] != 815000:
+        raise AssertionError(f"Expected total 815000, got {order['total']}")
+    if order['status'] != 'new':
+        raise AssertionError(f"Expected status 'new', got {order['status']}")
+
+def test_create_order_validation():
+    payload = {
+        "customer_name": "",  # Empty name should fail
+        "customer_phone": "08123456789",
+        "customer_note": "",
+        "items": [
+            {
+                "product_id": "as-wine",
+                "name": "Arabica Wine Process",
+                "price": 400000,
+                "qty": 1
+            }
+        ],
+        "zone_id": "",
+        "zone_name": "Medan Kota",
+        "shipping_cost": 15000,
+        "admin_phone": "081263680926",
+        "admin_name": "Deni"
+    }
+    r = requests.post(f"{API_URL}/orders", json=payload)
+    assert_status(r, 400, "Should return 400 for empty customer_name")
+
+def test_list_orders_without_auth():
+    r = requests.get(f"{API_URL}/admin/orders")
+    assert_status(r, 401, "Should return 401 for /api/admin/orders without auth")
+
+def test_list_orders_with_auth():
+    r = requests.get(f"{API_URL}/admin/orders", headers=headers_admin)
+    assert_status(r, 200)
+    data = r.json()
+    if not isinstance(data, list):
+        raise AssertionError("Response should be a list")
+    # Find our test order
+    found = False
+    for order in data:
+        if order['id'] == test_order_id:
+            found = True
+            break
+    if not found:
+        raise AssertionError(f"Order {test_order_id} not found in admin orders list")
+
+def test_list_orders_filter_new():
+    r = requests.get(f"{API_URL}/admin/orders?status=new", headers=headers_admin)
+    assert_status(r, 200)
+    data = r.json()
+    if not isinstance(data, list):
+        raise AssertionError("Response should be a list")
+    # All orders should have status=new
+    for order in data:
+        if order['status'] != 'new':
+            raise AssertionError(f"Order {order['id']} has status {order['status']}, expected 'new'")
+    # Our test order should be in the list
+    found = False
+    for order in data:
+        if order['id'] == test_order_id:
+            found = True
+            break
+    if not found:
+        raise AssertionError(f"Order {test_order_id} not found in filtered list (status=new)")
+
+def test_list_orders_filter_fulfilled_empty():
+    r = requests.get(f"{API_URL}/admin/orders?status=fulfilled", headers=headers_admin)
+    assert_status(r, 200)
+    data = r.json()
+    if not isinstance(data, list):
+        raise AssertionError("Response should be a list")
+    # Should be empty or not contain our test order
+    for order in data:
+        if order['id'] == test_order_id:
+            raise AssertionError(f"Order {test_order_id} should not be in fulfilled list yet")
+
+def test_update_order_status():
+    payload = {"status": "fulfilled"}
+    r = requests.patch(f"{API_URL}/admin/orders/{test_order_id}", json=payload, headers=headers_admin)
+    assert_status(r, 200)
+    data = r.json()
+    assert_json_field(data, 'ok', True)
+    
+    # Verify status was updated
+    order = db.orders.find_one({"id": test_order_id})
+    if order['status'] != 'fulfilled':
+        raise AssertionError(f"Order status should be 'fulfilled', got {order['status']}")
+
+def test_list_orders_filter_fulfilled_after_update():
+    r = requests.get(f"{API_URL}/admin/orders?status=fulfilled", headers=headers_admin)
+    assert_status(r, 200)
+    data = r.json()
+    if not isinstance(data, list):
+        raise AssertionError("Response should be a list")
+    # Our test order should now be in the list
+    found = False
+    for order in data:
+        if order['id'] == test_order_id:
+            found = True
+            if order['status'] != 'fulfilled':
+                raise AssertionError(f"Order {test_order_id} should have status 'fulfilled', got {order['status']}")
+            break
+    if not found:
+        raise AssertionError(f"Order {test_order_id} not found in fulfilled list after update")
+
+def test_update_order_invalid_status():
+    payload = {"status": "random"}
+    r = requests.patch(f"{API_URL}/admin/orders/{test_order_id}", json=payload, headers=headers_admin)
+    assert_status(r, 400, "Should return 400 for invalid status")
+
+def test_update_order_not_found():
+    payload = {"status": "fulfilled"}
+    r = requests.patch(f"{API_URL}/admin/orders/ghost-id-nope", json=payload, headers=headers_admin)
+    assert_status(r, 404, "Should return 404 for non-existent order")
+
+def test_delete_order():
+    r = requests.delete(f"{API_URL}/admin/orders/{test_order_id}", headers=headers_admin)
+    assert_status(r, 200)
+    data = r.json()
+    assert_json_field(data, 'deleted', 1)
+    
+    # Verify order is deleted from MongoDB
+    order = db.orders.find_one({"id": test_order_id})
+    if order is not None:
+        raise AssertionError(f"Order {test_order_id} should be deleted from MongoDB")
+
+def test_bulk_assign_images():
+    payload = {
+        "assignments": [
+            {
+                "product_id": "as-wine",
+                "image": "data:image/png;base64,iVBORw0KGgo="
+            },
+            {
+                "product_id": "ghost-id-nope",
+                "image": "data:image/png;base64,X"
+            }
+        ]
+    }
+    r = requests.post(f"{API_URL}/admin/products/bulk-images", json=payload, headers=headers_admin)
+    assert_status(r, 200)
+    data = r.json()
+    if 'updated' not in data:
+        raise AssertionError("Response should have 'updated' field")
+    if 'not_found' not in data:
+        raise AssertionError("Response should have 'not_found' field")
+    if data['updated'] != 1:
+        raise AssertionError(f"Expected updated=1, got {data['updated']}")
+    if 'ghost-id-nope' not in data['not_found']:
+        raise AssertionError(f"Expected 'ghost-id-nope' in not_found, got {data['not_found']}")
+    
+    # Verify product image was updated
+    r2 = requests.get(f"{API_URL}/products?category=arabica-specialty")
+    assert_status(r2, 200)
+    products = r2.json()
+    found = False
+    for p in products:
+        if p['id'] == 'as-wine':
+            found = True
+            if p['image'] != 'data:image/png;base64,iVBORw0KGgo=':
+                raise AssertionError(f"Product as-wine image should be updated, got: {p['image'][:50]}")
+            break
+    if not found:
+        raise AssertionError("Product as-wine not found in arabica-specialty category")
+
+def test_bulk_images_without_auth():
+    payload = {
+        "assignments": [
+            {
+                "product_id": "as-wine",
+                "image": "data:image/png;base64,test"
+            }
+        ]
+    }
+    r = requests.post(f"{API_URL}/admin/products/bulk-images", json=payload)
+    assert_status(r, 401, "Should return 401 for /api/admin/products/bulk-images without auth")
+
+# Run new feature tests
+test("POST /api/orders creates order with correct response", test_create_order_public)
+test("POST /api/orders with empty customer_name returns 400", test_create_order_validation)
+test("GET /api/admin/orders without auth returns 401", test_list_orders_without_auth)
+test("GET /api/admin/orders with admin Bearer returns list", test_list_orders_with_auth)
+test("GET /api/admin/orders?status=new filters correctly", test_list_orders_filter_new)
+test("GET /api/admin/orders?status=fulfilled is empty before update", test_list_orders_filter_fulfilled_empty)
+test("PATCH /api/admin/orders/{id} updates status to fulfilled", test_update_order_status)
+test("GET /api/admin/orders?status=fulfilled shows updated order", test_list_orders_filter_fulfilled_after_update)
+test("PATCH /api/admin/orders/{id} with invalid status returns 400", test_update_order_invalid_status)
+test("PATCH /api/admin/orders/{id} with non-existent id returns 404", test_update_order_not_found)
+test("DELETE /api/admin/orders/{id} deletes order", test_delete_order)
+test("POST /api/admin/products/bulk-images updates and reports not found", test_bulk_assign_images)
+test("POST /api/admin/products/bulk-images without auth returns 401", test_bulk_images_without_auth)
+
+print()
+print("=" * 80)
 print("CLEANUP")
 print("=" * 80)
 

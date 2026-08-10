@@ -142,3 +142,45 @@ class Settings(BaseModel):
     review_count: int = 18
     admins: List[dict] = Field(default_factory=list)
     google_place_id: str = ""
+
+
+# ---------- ORDER ----------
+class OrderItem(BaseModel):
+    product_id: Optional[str] = ""
+    name: str
+    variant: Optional[str] = ""
+    price: int
+    qty: int
+
+
+class OrderCreate(BaseModel):
+    customer_name: str
+    customer_phone: str
+    customer_note: Optional[str] = ""
+    items: List[OrderItem]
+    zone_id: Optional[str] = ""
+    zone_name: Optional[str] = ""
+    shipping_cost: int = 0
+    admin_phone: str  # phone of admin the customer chose (WA target)
+    admin_name: Optional[str] = ""
+
+
+class Order(BaseModel):
+    id: str = Field(default_factory=lambda: _uid("ord_"))
+    customer_name: str
+    customer_phone: str
+    customer_note: Optional[str] = ""
+    items: List[OrderItem]
+    zone_id: Optional[str] = ""
+    zone_name: Optional[str] = ""
+    subtotal: int = 0
+    shipping_cost: int = 0
+    total: int = 0
+    admin_phone: str = ""
+    admin_name: Optional[str] = ""
+    status: str = "new"  # new | fulfilled | cancelled
+    created_at: datetime = Field(default_factory=_now)
+
+
+class OrderStatusUpdate(BaseModel):
+    status: str  # new | fulfilled | cancelled
