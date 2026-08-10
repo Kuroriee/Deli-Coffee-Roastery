@@ -225,6 +225,24 @@ backend:
         agent: "testing"
         comment: "✅ PASSED (2 tests): POST /api/admin/products/bulk-images with 2 assignments (1 valid 'as-wine', 1 invalid 'ghost-id-nope') returns {updated:1, not_found:['ghost-id-nope']}. Verified 'as-wine' product image was updated via GET /api/products?category=arabica-specialty. Without auth returns 401."
 
+  - task: "Bug fix: Product image for 'as-wine' (Arabica Wine Process)"
+    implemented: true
+    working: true
+    file: "MongoDB products collection"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "User reported: Product image for 'Arabica Wine Process' (id: as-wine) was not displaying on admin products page — showing only alt text. Image field in DB contained broken 1-byte base64 test PNG (data:image/png;base64,iVBORw0KGgo=) left over from earlier bulk-images test."
+      - working: "NA"
+        agent: "main"
+        comment: "Applied fix: Updated MongoDB products.image for as-wine to fresh Unsplash URL: https://images.unsplash.com/photo-1675306408031-a9aad9f23308?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHwzfHxkYXJrJTIwY29mZmVlJTIwYmVhbnN8ZW58MHx8fHwxNzg2MzkxMzAwfDA&ixlib=rb-4.1.0&q=85"
+      - working: true
+        agent: "testing"
+        comment: "✅ BUG FIX VERIFIED (6 tests): GET /api/products?category=arabica-specialty confirms as-wine image is now correct Unsplash URL (https://images.unsplash.com/photo-1675306408031-...), NOT the broken base64 data. Image URL returns HTTP 200 with Content-Type: image/jpeg. Verified name='Arabica Wine Process', price=400000. Checked all 14 products - zero products have the broken base64 image 'iVBORw0KGgo='. Sanity checks passed: 4 categories, 7 shipping zones, valid settings. Bug fix confirmed working."
+
 frontend:
   - task: "Customer pages now fetch from API via useCatalog hook"
     implemented: true
@@ -265,7 +283,7 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 3
+  test_sequence: 4
 
 test_plan:
   current_focus: []
@@ -345,3 +363,27 @@ agent_communication:
       
       SUMMARY:
       All 41 backend tests passed. No critical issues found. All new endpoints working as expected with proper auth checks, validation, and data persistence.
+  - agent: "testing"
+    message: |
+      ✅ BUG FIX VERIFICATION COMPLETE (6/6 tests passed)
+      
+      User-reported issue: Product "Arabica Wine Process" (id: as-wine) had broken 1-byte base64 image
+      Fix applied: Updated to Unsplash URL
+      
+      VERIFICATION RESULTS:
+      1. ✅ GET /api/products?category=arabica-specialty - as-wine image confirmed as Unsplash URL
+         - Image: https://images.unsplash.com/photo-1675306408031-a9aad9f23308?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHwzfHxkYXJrJTIwY29mZmVlJTIwYmVhbnN8ZW58MHx8fHwxNzg2MzkxMzAwfDA&ixlib=rb-4.1.0&q=85
+         - Name: Arabica Wine Process ✅
+         - Price: 400000 ✅
+         - NOT the broken base64 data ✅
+      
+      2. ✅ Image URL fetch - HTTP 200, Content-Type: image/jpeg
+      
+      3. ✅ All products scan - Zero products with broken base64 image (checked 14 products)
+      
+      4. ✅ Sanity checks - No regressions:
+         - Categories: 4 ✅
+         - Shipping zones: 7 ✅
+         - Settings: Valid ✅
+      
+      BUG FIX CONFIRMED WORKING. Ready for main agent to summarize and finish.

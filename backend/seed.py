@@ -26,7 +26,7 @@ _IMG_PREM = "https://images.unsplash.com/photo-1562051036-e0eea191d42f?crop=entr
 _IMG_ROBU = "https://images.unsplash.com/photo-1512372388054-a322888e67a6"
 
 PRODUCTS = [
-    {"id": "as-wine", "category": "arabica-specialty", "name": "Arabica Wine Process", "process": "Wine", "price": 400000, "badge": "Premium", "desc": "Fermentasi panjang, aroma buah anggur, body sirupy.", "image": "https://images.unsplash.com/photo-1447933601403-0c6688de566e?crop=entropy&cs=srgb&fm=jpg&q=85", "sort_order": 1},
+    {"id": "as-wine", "category": "arabica-specialty", "name": "Arabica Wine Process", "process": "Wine", "price": 400000, "badge": "Premium", "desc": "Fermentasi panjang, aroma buah anggur, body sirupy.", "image": "https://images.unsplash.com/photo-1675306408031-a9aad9f23308?crop=entropy&cs=srgb&fm=jpg&q=85", "sort_order": 1},
     {"id": "as-luwak", "category": "arabica-specialty", "name": "Arabica Luwak", "process": "Luwak", "price": 450000, "badge": "Eksklusif", "desc": "Klasik Nusantara, halus, low acidity, aftertaste manis.", "image": "https://images.unsplash.com/photo-1607681034540-2c46cc71896d?crop=entropy&cs=srgb&fm=jpg&q=85", "sort_order": 2},
     {"id": "as-peaberry", "category": "arabica-specialty", "name": "Arabica Peaberry", "process": "Peaberry", "price": 300000, "badge": "", "desc": "Biji bundar tunggal, konsentrat rasa lebih intens.", "image": _IMG_SPEC, "sort_order": 3},
     {"id": "as-honey", "category": "arabica-specialty", "name": "Arabica Honey Process", "process": "Honey", "price": 300000, "badge": "", "desc": "Manis madu, body medium, acidity lembut.", "image": _IMG_SPEC, "sort_order": 4},
