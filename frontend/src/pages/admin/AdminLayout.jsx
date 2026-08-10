@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Coffee,
   LayoutDashboard,
@@ -13,8 +13,13 @@ import {
   ExternalLink,
   ClipboardList,
   ImagePlus,
+  Bell,
+  BellOff,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
+import { adminApi } from "../../lib/api";
+import { playBell } from "../../lib/sound";
 
 const NAV = [
   { to: "/admin", end: true, icon: LayoutDashboard, label: "Dashboard" },
@@ -31,6 +36,53 @@ const NAV = [
 const AdminLayout = () => {
   const { user, loading, logout } = useAuth();
   const navigate = useNavigate();
+
+  // -------- New Orders Polling + Sound --------
+  const [newOrders, setNewOrders] = useState(0);
+  const [soundOn, setSoundOn] = useState(() => {
+    try {
+      return localStorage.getItem("deli_admin_sound") !== "0";
+    } catch {
+      return true;
+    }
+  });
+  const lastCountRef = useRef(null);
+  const initialisedRef = useRef(false);
+
+  const toggleSound = () => {
+    setSoundOn((v) => {
+      const next = !v;
+      try { localStorage.setItem("deli_admin_sound", next ? "1" : "0"); } catch {}
+      if (next) playBell(); // sample chime as feedback
+      return next;
+    });
+  };
+
+  const pollOrders = useCallback(async () => {
+    try {
+      const list = await adminApi.listOrders("new");
+      const cnt = list.length;
+      const prev = lastCountRef.current;
+      lastCountRef.current = cnt;
+      setNewOrders(cnt);
+      if (initialisedRef.current && prev !== null && cnt > prev) {
+        if (soundOn) playBell();
+        const diff = cnt - prev;
+        toast.success(`${diff} pesanan baru masuk!`);
+      }
+      initialisedRef.current = true;
+    } catch {
+      // ignore polling errors
+    }
+  }, [soundOn]);
+
+  useEffect(() => {
+    if (!user) return;
+    pollOrders();
+    const t = setInterval(pollOrders, 20000); // every 20s
+    return () => clearInterval(t);
+  }, [user, pollOrders]);
+  // --------------------------------------------
 
   useEffect(() => {
     if (!loading && !user) navigate("/login", { replace: true });
@@ -58,22 +110,44 @@ const AdminLayout = () => {
         </Link>
 
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              end={n.end}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
-                  isActive
-                    ? "bg-[#1B7A43] text-[#F6EFE4]"
-                    : "text-[#F6EFE4]/80 hover:bg-[#5A3A22] hover:text-[#F6EFE4]"
-                }`
-              }
-            >
-              <n.icon className="h-4 w-4" /> {n.label}
-            </NavLink>
-          ))}
+          {NAV.map((n) => {
+            const isOrders = n.to === "/admin/pesanan";
+            return (
+              <NavLink
+                key={n.to}
+                to={n.to}
+                end={n.end}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-colors ${
+                    isActive
+                      ? "bg-[#1B7A43] text-[#F6EFE4]"
+                      : "text-[#F6EFE4]/80 hover:bg-[#5A3A22] hover:text-[#F6EFE4]"
+                  }`
+                }
+              >
+                <n.icon className="h-4 w-4" />
+                <span className="flex-1">{n.label}</span>
+                {isOrders && newOrders > 0 && (
+                  <span className="bg-[#C9A227] text-[#2A1D0B] rounded-full h-5 min-w-5 px-1.5 text-[10px] font-bold flex items-center justify-center">
+                    {newOrders}
+                  </span>
+                )}
+              </NavLink>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={toggleSound}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#F6EFE4]/70 hover:bg-[#5A3A22] hover:text-[#F6EFE4] transition-colors mt-2"
+            title={soundOn ? "Matikan notifikasi suara" : "Nyalakan notifikasi suara"}
+          >
+            {soundOn ? <Bell className="h-4 w-4 text-[#C9A227]" /> : <BellOff className="h-4 w-4" />}
+            <span className="flex-1 text-left">Notifikasi suara</span>
+            <span className={`text-[10px] uppercase tracking-widest ${soundOn ? "text-[#C9A227]" : "text-[#F6EFE4]/40"}`}>
+              {soundOn ? "ON" : "OFF"}
+            </span>
+          </button>
         </nav>
 
         <div className="px-3 py-4 border-t border-[#F6EFE4]/10">

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Minus, Plus, Trash2, MessageCircle, Instagram, ShoppingBag,
-  ArrowRight, Truck, Info, User, Phone, StickyNote, Loader2,
+  ArrowRight, Truck, Info, User, Phone, StickyNote, Loader2, Sparkles,
 } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useCatalog } from "../hooks/useCatalog";
@@ -13,8 +13,8 @@ import { toast } from "sonner";
 const STORAGE_CUSTOMER = "deli_coffee_customer_v1";
 
 const CartPage = () => {
-  const { items, updateQty, removeItem, clear, total: subtotal, count } = useCart();
-  const { brand, zones } = useCatalog();
+  const { items, updateQty, removeItem, clear, addItem, total: subtotal, count } = useCart();
+  const { brand, zones, products, houseBlend } = useCatalog();
   const [zoneId, setZoneId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -45,6 +45,32 @@ const CartPage = () => {
   const total = subtotal + shipping;
 
   const admins = brand.admins || [];
+
+  // "Sering dibeli bersama" — prioritas kategori yang sama, keluarkan yang sudah di keranjang
+  const recommendations = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    const inCartIds = new Set(items.map((i) => i.id));
+    const cartCategories = new Set(
+      items
+        .map((i) => products.find((p) => p.id === i.id)?.category)
+        .filter(Boolean)
+    );
+    const eligible = products.filter((p) => !inCartIds.has(p.id) && p.active !== false);
+    const scored = eligible.map((p) => ({
+      p,
+      score:
+        (cartCategories.has(p.category) ? 2 : 0) +
+        (p.badge === "Premium" || p.badge === "Eksklusif" ? 1 : 0) +
+        Math.random() * 0.5,
+    }));
+    scored.sort((a, b) => b.score - a.score);
+    return scored.slice(0, 4).map((s) => s.p);
+  }, [products, items]);
+
+  const quickAdd = (p) => {
+    addItem({ id: p.id, name: p.name, price: p.price, qty: 1, process: p.process });
+    toast.success(`${p.name} ditambahkan`);
+  };
 
   const canSubmit =
     items.length > 0 &&
@@ -148,6 +174,48 @@ const CartPage = () => {
                 </div>
               </div>
             ))}
+
+            {/* Rekomendasi — Sering Dibeli Bersama */}
+            {recommendations.length > 0 && (
+              <div className="rounded-2xl border border-[#3B2412]/10 bg-[#FBF6EC] p-5">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-[#C9A227]" />
+                  <div className="text-xs uppercase tracking-widest text-[#3B2412]/60 font-semibold">
+                    Sering Dibeli Bersama
+                  </div>
+                </div>
+                <p className="mt-1 text-xs text-[#3B2412]/70">
+                  Pelanggan lain juga suka menambah kopi ini ke keranjang mereka.
+                </p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {recommendations.map((p) => (
+                    <div key={p.id} className="rounded-xl bg-[#F6EFE4] border border-[#3B2412]/10 overflow-hidden flex flex-col">
+                      <div className="aspect-square bg-[#3B2412]/5 overflow-hidden">
+                        {p.image ? (
+                          <img src={p.image} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[#3B2412]/30 text-xs">Tanpa foto</div>
+                        )}
+                      </div>
+                      <div className="p-3 flex flex-col flex-1">
+                        <div className="text-[10px] uppercase tracking-widest text-[#3B2412]/60">
+                          {p.process || p.region || ""}
+                        </div>
+                        <div className="font-serif-warm text-sm text-[#3B2412] leading-tight line-clamp-2">{p.name}</div>
+                        <div className="mt-1 text-sm font-semibold text-[#1B7A43]">{formatRupiah(p.price)}/kg</div>
+                        <button
+                          type="button"
+                          onClick={() => quickAdd(p)}
+                          className="mt-auto pt-2 btn-outline rounded-full h-8 text-[11px] font-semibold inline-flex items-center justify-center gap-1"
+                        >
+                          <Plus className="h-3 w-3" /> Tambahkan
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Customer contact */}
             <div className="rounded-2xl border border-[#3B2412]/10 bg-[#FBF6EC] p-5">

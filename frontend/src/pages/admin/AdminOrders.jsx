@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   RefreshCw, CheckCircle2, XCircle, Trash2, Phone, MapPin, Package,
-  MessageCircle, Filter,
+  MessageCircle, Filter, Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { adminApi } from "../../lib/api";
 import { formatRupiah, buildWhatsAppLink } from "../../mock/mock";
+import { API_BASE } from "../../lib/api";
 
 const STATUS_LABELS = {
   new: { label: "Baru", color: "bg-[#C9A227]/20 text-[#8A6E14] border-[#C9A227]/40" },
@@ -26,6 +27,33 @@ const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const [exportMonth, setExportMonth] = useState(currentMonth);
+
+  const downloadCsv = async () => {
+    try {
+      const url = `${API_BASE}/admin/orders/export.csv?month=${encodeURIComponent(exportMonth)}${status ? `&status=${status}` : ""}`;
+      // Use fetch with credentials so cookie is included
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) {
+        toast.error(`Gagal unduh CSV (${res.status})`);
+        return;
+      }
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      const objectUrl = URL.createObjectURL(blob);
+      a.href = objectUrl;
+      a.download = `deli-coffee-orders-${exportMonth}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+      toast.success("CSV terunduh");
+    } catch (e) {
+      toast.error("Gagal unduh CSV");
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -69,9 +97,24 @@ const AdminOrders = () => {
             Log tiap kali pelanggan menekan “Pesan Sekarang” di keranjang.
           </p>
         </div>
-        <button onClick={load} className="btn-outline rounded-full px-4 py-2 text-sm font-semibold inline-flex items-center gap-1">
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="month"
+            value={exportMonth}
+            onChange={(e) => setExportMonth(e.target.value)}
+            className="rounded-full border border-[#3B2412]/25 bg-[#FBF6EC] text-sm px-3 py-2"
+          />
+          <button
+            onClick={downloadCsv}
+            className="btn-amber rounded-full px-4 py-2 text-sm font-semibold inline-flex items-center gap-1"
+            title="Unduh laporan pesanan bulan terpilih"
+          >
+            <Download className="h-4 w-4" /> Unduh CSV
+          </button>
+          <button onClick={load} className="btn-outline rounded-full px-4 py-2 text-sm font-semibold inline-flex items-center gap-1">
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">

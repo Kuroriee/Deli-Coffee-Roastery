@@ -414,6 +414,70 @@ async def delete_order(oid: str, request: Request):
     return {"deleted": r.deleted_count}
 
 
+@api.get("/admin/orders/export.csv")
+async def export_orders_csv(request: Request, month: Optional[str] = None, status: Optional[str] = None):
+    """Export orders to CSV. `month` = 'YYYY-MM'. If omitted -> current month."""
+    from fastapi.responses import Response as FastAPIResponse
+    import io, csv, calendar
+    from datetime import datetime as _dt
+
+    await require_admin(request, db)
+
+    if not month:
+        n = datetime.now(timezone.utc)
+        month = f"{n.year:04d}-{n.month:02d}"
+    try:
+        y, m = month.split("-")
+        y, m = int(y), int(m)
+        start = _dt(y, m, 1, tzinfo=timezone.utc)
+        last_day = calendar.monthrange(y, m)[1]
+        end = _dt(y, m, last_day, 23, 59, 59, tzinfo=timezone.utc)
+    except Exception:
+        raise HTTPException(400, "Format month harus YYYY-MM")
+
+    q = {"created_at": {"$gte": start, "$lte": end}}
+    if status:
+        q["status"] = status
+    docs = await db.orders.find(q, {"_id": 0}).sort("created_at", 1).to_list(5000)
+
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow([
+        "ID", "Waktu", "Status", "Nama Pelanggan", "No. HP",
+        "Zona Pengiriman", "Ongkir", "Subtotal", "Total",
+        "Admin WA", "Item (nama x qty)", "Catatan",
+    ])
+    for o in docs:
+        created = o.get("created_at")
+        if hasattr(created, "isoformat"):
+            created = created.isoformat()
+        items_str = " | ".join(
+            f"{it.get('name')}{(' - ' + it.get('variant')) if it.get('variant') else ''} x {it.get('qty')}kg"
+            for it in (o.get("items") or [])
+        )
+        w.writerow([
+            o.get("id", ""),
+            created or "",
+            o.get("status", ""),
+            o.get("customer_name", ""),
+            o.get("customer_phone", ""),
+            o.get("zone_name", ""),
+            o.get("shipping_cost", 0),
+            o.get("subtotal", 0),
+            o.get("total", 0),
+            o.get("admin_name") or o.get("admin_phone", ""),
+            items_str,
+            o.get("customer_note", ""),
+        ])
+    csv_bytes = ("\ufeff" + buf.getvalue()).encode("utf-8")  # BOM so Excel opens UTF-8
+    filename = f"deli-coffee-orders-{month}.csv"
+    return FastAPIResponse(
+        content=csv_bytes,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 # ---------- BULK IMAGE ASSIGN ----------
 from pydantic import BaseModel as _BM
 
