@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import { Instagram, MapPin, Phone, Clock, Coffee, Star } from "lucide-react";
-import { brand } from "../../mock/mock";
+import { useCatalog } from "../../hooks/useCatalog";
 
 const Footer = () => {
+  const { brand } = useCatalog();
   return (
     <footer className="mt-20 bg-[#3B2412] text-[#F6EFE4]">
       <div className="max-w-7xl mx-auto px-5 lg:px-8 py-14 grid gap-10 md:grid-cols-4">

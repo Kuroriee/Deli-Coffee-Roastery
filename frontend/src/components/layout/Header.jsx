@@ -2,7 +2,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import { ShoppingBag, Instagram, Menu, X, Coffee } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCart } from "../../context/CartContext";
-import { brand } from "../../mock/mock";
+import { useCatalog } from "../../hooks/useCatalog";
 
 const navLinks = [
   { to: "/", label: "Beranda" },
@@ -12,6 +12,7 @@ const navLinks = [
 
 const Header = () => {
   const { count } = useCart();
+  const { brand } = useCatalog();
   const [open, setOpen] = useState(false);
   const location = useLocation();
 

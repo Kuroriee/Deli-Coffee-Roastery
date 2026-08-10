@@ -133,3 +133,38 @@ body {
 
 /* Utility: remove App-header artefact */
 .App-header { display: none !important; }
+
+/* Admin form styles */
+.input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(59, 36, 18, 0.25);
+  background: #F6EFE4;
+  color: #3B2412;
+  font-size: 14px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.input:focus {
+  outline: none;
+  border-color: #1B7A43;
+  box-shadow: 0 0 0 3px rgba(27, 122, 67, 0.15);
+}
+select.input, textarea.input { min-height: 40px; }
+textarea.input { min-height: 80px; font-family: inherit; }
+
+.th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(59, 36, 18, 0.7);
+  padding: 12px;
+  font-weight: 600;
+}
+.td {
+  padding: 12px;
+  font-size: 14px;
+  color: #3B2412;
+  vertical-align: middle;
+}

@@ -7,17 +7,18 @@ import {
   Star,
   Navigation
 } from "lucide-react";
-import { brand, buildWhatsAppLink } from "../mock/mock";
+import { buildWhatsAppLink } from "../mock/mock";
+import { useCatalog } from "../hooks/useCatalog";
 
-const isOpenNow = () => {
-  // WIB (UTC+7) approximation using client tz — mock only
+const isOpenNow = (b) => {
   const now = new Date();
   const h = now.getHours();
-  return h >= brand.openingHour && h < brand.closingHour;
+  return h >= (b.openingHour || 9) && h < (b.closingHour || 21);
 };
 
 const ContactPage = () => {
-  const open = isOpenNow();
+  const { brand } = useCatalog();
+  const open = isOpenNow(brand);
 
   return (
     <div className="max-w-7xl mx-auto px-5 lg:px-8 py-12 md:py-16">
@@ -52,7 +53,7 @@ const ContactPage = () => {
           </div>
 
           <div className="mt-8 space-y-4">
-            {brand.admins.map((a) => (
+            {(brand.admins || []).map((a) => (
               <div
                 key={a.phone}
                 className="rounded-2xl bg-[#FBF6EC] border border-[#3B2412]/10 p-5 flex items-center gap-4"
