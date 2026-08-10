@@ -65,7 +65,8 @@ const AdminOrders = () => {
       setLoading(false);
     }
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [status]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [status]);
 
   const buildThankYouWA = (o) => {
     const msg = `Halo ${o.customer_name}, terima kasih atas pesanannya di Deli Coffee!\n\nPesanan Anda sudah kami proses & siap dikirim.\nRincian:\n- Total: ${formatRupiah(o.total)}\n${o.zone_name ? `- Pengiriman: ${o.zone_name}\n` : ""}\nSelamat menikmati kopinya! Jika ada masukan, boleh langsung balas pesan ini ya. — ${o.admin_name || "Deli Coffee"}`;
@@ -197,7 +198,7 @@ const AdminOrders = () => {
 
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   {(o.items || []).map((it, i) => (
-                    <div key={i} className="text-xs bg-[#F6EFE4] rounded-lg px-3 py-2 flex items-center justify-between border border-[#3B2412]/10">
+                    <div key={`${o.id}-${it.product_id || i}-${i}`} className="text-xs bg-[#F6EFE4] rounded-lg px-3 py-2 flex items-center justify-between border border-[#3B2412]/10">
                       <div className="flex items-center gap-2">
                         <Package className="h-3 w-3 text-[#1B7A43]" />
                         <span className="font-semibold text-[#3B2412]">{it.name}</span>

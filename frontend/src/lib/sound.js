@@ -35,7 +35,10 @@ export const playBell = () => {
       osc.start(now + n.start);
       osc.stop(now + n.start + n.dur + 0.05);
     }
-  } catch (e) {
-    // silent
+  } catch (err) {
+    // Web Audio not available or blocked — silent fallback
+    if (typeof window !== "undefined" && window.console) {
+      window.console.warn("playBell: audio playback failed", err?.message);
+    }
   }
 };

@@ -387,3 +387,52 @@ agent_communication:
          - Settings: Valid ✅
       
       BUG FIX CONFIRMED WORKING. Ready for main agent to summarize and finish.
+  - agent: "main"
+    message: |
+      Code-quality fix applied to /app/backend/server.py at GET /api/admin/stats/restock-alerts endpoint.
+      Changed: if p.get("active") is False → if not p.get("active", True)
+      Both should behave identically for boolean active values. Please run regression test to verify no behavioral changes.
+  - agent: "testing"
+    message: |
+      ✅ REGRESSION TEST COMPLETE (22/22 tests passed)
+      
+      Code-quality fix verified: No regression detected
+      Change: if p.get("active") is False → if not p.get("active", True)
+      
+      TEST COVERAGE:
+      1. Public Endpoints (7 tests) - All unchanged ✅
+         - GET /api/ → {service, ok:true}
+         - GET /api/categories → 4 items
+         - GET /api/products → 14 items (all active != False)
+         - GET /api/house-blend/ratios → 5 items
+         - GET /api/shipping-zones → 7 items
+         - GET /api/testimonials → 4 items
+         - GET /api/settings → valid response
+      
+      2. Auth Flow (2 tests) - Working correctly ✅
+         - GET /api/auth/me with Bearer → 200
+         - GET /api/auth/me without auth → 401
+      
+      3. FOCUS TEST - Restock-Alerts Endpoint (7 tests) - All passed ✅
+         - Without auth → 401 ✅
+         - With admin auth → 200 with correct keys (no_image, zero_price, inactive, total_products) ✅
+         - total_products = 14 (matches public products count) ✅
+         - inactive array empty when all products active ✅
+         - Product with active=false correctly appears in inactive array ✅
+         - Product with active=true correctly excluded from inactive array ✅
+         - Test products cleaned up ✅
+      
+      4. Auth-Required Endpoints (4 tests) - All unchanged ✅
+         - GET /api/admin/orders without auth → 401
+         - GET /api/admin/orders with auth → 200
+         - GET /api/admin/products without auth → 401
+         - GET /api/admin/products with auth → 200
+      
+      5. Sanity Check - Orders CRUD (2 tests) - Working correctly ✅
+         - POST /api/orders (public) → 200 with wa_url
+         - DELETE /api/admin/orders/{id} → 200
+      
+      CONCLUSION:
+      Both implementations behave identically for boolean active values (True/False).
+      The new implementation is more defensive (handles None/missing gracefully with default True).
+      No regression detected. All endpoints working as expected.

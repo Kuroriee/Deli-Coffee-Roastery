@@ -42,7 +42,8 @@ const AdminLayout = () => {
   const [soundOn, setSoundOn] = useState(() => {
     try {
       return localStorage.getItem("deli_admin_sound") !== "0";
-    } catch {
+    } catch (err) {
+      console.warn("AdminLayout: gagal baca pref suara", err);
       return true;
     }
   });
@@ -52,7 +53,7 @@ const AdminLayout = () => {
   const toggleSound = () => {
     setSoundOn((v) => {
       const next = !v;
-      try { localStorage.setItem("deli_admin_sound", next ? "1" : "0"); } catch {}
+      try { localStorage.setItem("deli_admin_sound", next ? "1" : "0"); } catch (err) { console.warn("gagal simpan pref suara", err); }
       if (next) playBell(); // sample chime as feedback
       return next;
     });
@@ -71,8 +72,11 @@ const AdminLayout = () => {
         toast.success(`${diff} pesanan baru masuk!`);
       }
       initialisedRef.current = true;
-    } catch {
-      // ignore polling errors
+    } catch (err) {
+      // silent polling failures — log for debugging only
+      if (err?.response && err.response.status !== 401) {
+        console.warn("AdminLayout: gagal polling pesanan", err.response.status);
+      }
     }
   }, [soundOn]);
 

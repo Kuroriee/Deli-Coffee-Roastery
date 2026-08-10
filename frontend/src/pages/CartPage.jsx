@@ -22,7 +22,8 @@ const CartPage = () => {
     try {
       const raw = localStorage.getItem(STORAGE_CUSTOMER);
       return raw ? JSON.parse(raw) : { name: "", phone: "", note: "" };
-    } catch {
+    } catch (err) {
+      console.warn("CartPage: gagal baca customer info", err);
       return { name: "", phone: "", note: "" };
     }
   });
@@ -30,7 +31,9 @@ const CartPage = () => {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_CUSTOMER, JSON.stringify(customer));
-    } catch {}
+    } catch (err) {
+      console.warn("CartPage: gagal simpan customer info ke localStorage", err);
+    }
   }, [customer]);
 
   useEffect(() => {

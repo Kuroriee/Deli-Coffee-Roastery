@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 const CartContext = createContext(null);
 
@@ -9,7 +9,8 @@ export const CartProvider = ({ children }) => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : [];
-    } catch {
+    } catch (err) {
+      console.warn("CartContext: gagal baca localStorage", err);
       return [];
     }
   });
@@ -17,12 +18,12 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    } catch {
-      /* ignore */
+    } catch (err) {
+      console.warn("CartContext: gagal simpan localStorage", err);
     }
   }, [items]);
 
-  const addItem = (item) => {
+  const addItem = useCallback((item) => {
     setItems((prev) => {
       const key = item.variant ? `${item.id}::${item.variant}` : item.id;
       const idx = prev.findIndex(
@@ -35,17 +36,17 @@ export const CartProvider = ({ children }) => {
       }
       return [...prev, { ...item, qty: item.qty || 1 }];
     });
-  };
+  }, []);
 
-  const removeItem = (id, variant) => {
+  const removeItem = useCallback((id, variant) => {
     setItems((prev) =>
       prev.filter(
         (p) => !(p.id === id && (variant ? p.variant === variant : !p.variant))
       )
     );
-  };
+  }, []);
 
-  const updateQty = (id, variant, qty) => {
+  const updateQty = useCallback((id, variant, qty) => {
     setItems((prev) =>
       prev.map((p) => {
         if (p.id === id && (variant ? p.variant === variant : !p.variant)) {
@@ -54,9 +55,9 @@ export const CartProvider = ({ children }) => {
         return p;
       })
     );
-  };
+  }, []);
 
-  const clear = () => setItems([]);
+  const clear = useCallback(() => setItems([]), []);
 
   const totals = useMemo(() => {
     const total = items.reduce((s, i) => s + i.price * i.qty, 0);
@@ -64,13 +65,12 @@ export const CartProvider = ({ children }) => {
     return { total, count };
   }, [items]);
 
-  return (
-    <CartContext.Provider
-      value={{ items, addItem, removeItem, updateQty, clear, ...totals }}
-    >
-      {children}
-    </CartContext.Provider>
+  const value = useMemo(
+    () => ({ items, addItem, removeItem, updateQty, clear, ...totals }),
+    [items, addItem, removeItem, updateQty, clear, totals]
   );
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
 
 export const useCart = () => {

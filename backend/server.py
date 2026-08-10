@@ -574,7 +574,7 @@ async def restock_alerts(request: Request):
             no_image.append(p)
         if not p.get("price"):
             zero_price.append(p)
-        if p.get("active") is False:
+        if not p.get("active", True):  # explicit inactive flag
             inactive.append(p)
     return {
         "no_image": no_image,

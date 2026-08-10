@@ -64,7 +64,7 @@ const AdminHouseBlend = () => {
           </thead>
           <tbody className="divide-y divide-[#3B2412]/10">
             {ratios.map((r, i) => (
-              <tr key={i}>
+              <tr key={r.value || `ratio-${i}`}>
                 <td className="td"><input className="input" value={r.value} onChange={(e) => update(i, { value: e.target.value })} placeholder="30/70" /></td>
                 <td className="td"><input className="input" value={r.label} onChange={(e) => update(i, { label: e.target.value })} placeholder="30 / 70" /></td>
                 <td className="td"><input type="number" className="input" value={r.price} onChange={(e) => update(i, { price: e.target.value })} /></td>

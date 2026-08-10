@@ -69,7 +69,7 @@ const AdminSettings = () => {
         </div>
         <div className="mt-3 space-y-2">
           {(s.admins || []).map((a, i) => (
-            <div key={i} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center bg-[#FBF6EC] rounded-2xl p-3 border border-[#3B2412]/10">
+            <div key={a.phone || `admin-${i}`} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center bg-[#FBF6EC] rounded-2xl p-3 border border-[#3B2412]/10">
               <input className="input" value={a.name} placeholder="Nama" onChange={(e) => setAdmin(i, { name: e.target.value })} />
               <input className="input" value={a.phone} placeholder="Nomor WA (0812…)" onChange={(e) => setAdmin(i, { phone: e.target.value })} />
               <input className="input" value={a.display} placeholder="Tampilan (0812-...)" onChange={(e) => setAdmin(i, { display: e.target.value })} />

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 import { authApi } from "../lib/api";
 
 const AuthContext = createContext(null);
@@ -11,7 +11,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const u = await authApi.me();
       setUser(u);
-    } catch {
+    } catch (err) {
+      // Not logged in — normal case, log only for non-401 errors
+      if (err?.response && err.response.status !== 401) {
+        console.warn("AuthContext: auth check failed", err.response.status);
+      }
       setUser(null);
     } finally {
       setLoading(false);
@@ -19,7 +23,6 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    // Skip if returning from OAuth callback — AuthCallback will handle it
     if (window.location.hash && window.location.hash.includes("session_id=")) {
       setLoading(false);
       return;
@@ -27,25 +30,28 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, [checkAuth]);
 
-  const login = () => {
+  const login = useCallback(() => {
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
     const redirectUrl = window.location.origin + "/admin";
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await authApi.logout();
-    } catch {}
+    } catch (err) {
+      console.warn("AuthContext: logout API failed, clearing state anyway", err?.message);
+    }
     setUser(null);
     window.location.href = "/";
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refresh: checkAuth, setUser }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({ user, loading, login, logout, refresh: checkAuth, setUser }),
+    [user, loading, login, logout, checkAuth]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

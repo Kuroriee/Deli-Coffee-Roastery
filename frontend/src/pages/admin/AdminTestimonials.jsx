@@ -94,7 +94,7 @@ const AdminTestimonials = () => {
           <div className="font-serif-warm text-lg text-[#3B2412]">Google Reviews terkini ({gr.review_count} ulasan, rating {gr.rating})</div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {gr.reviews.map((rv, i) => (
-              <div key={i} className="rounded-xl border border-[#3B2412]/10 p-3 bg-[#F6EFE4]">
+              <div key={`${rv.name || "anon"}-${i}`} className="rounded-xl border border-[#3B2412]/10 p-3 bg-[#F6EFE4]">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-semibold text-[#3B2412]">{rv.name}</div>
                   <div className="flex text-[#C9A227] text-xs">{Array.from({length: rv.rating}).map((_,k)=>"★").join("")}</div>
