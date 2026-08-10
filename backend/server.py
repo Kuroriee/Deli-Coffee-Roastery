@@ -23,6 +23,11 @@ from auth import (
     current_user, require_admin, is_email_whitelisted, SESSION_DAYS,
 )
 from seed import seed_all
+from helpers import (
+    parse_month, current_month_str,
+    bucket_orders_by_day, buckets_to_days,
+    orders_to_csv_bytes,
+)
 
 
 ROOT_DIR = Path(__file__).parent
@@ -416,22 +421,13 @@ async def delete_order(oid: str, request: Request):
 
 @api.get("/admin/orders/export.csv")
 async def export_orders_csv(request: Request, month: Optional[str] = None, status: Optional[str] = None):
-    """Export orders to CSV. `month` = 'YYYY-MM'. If omitted -> current month."""
+    """Export orders to CSV. `month` = 'YYYY-MM'. Defaults to current month."""
     from fastapi.responses import Response as FastAPIResponse
-    import io, csv, calendar
-    from datetime import datetime as _dt
 
     await require_admin(request, db)
-
-    if not month:
-        n = datetime.now(timezone.utc)
-        month = f"{n.year:04d}-{n.month:02d}"
+    month = month or current_month_str()
     try:
-        y, m = month.split("-")
-        y, m = int(y), int(m)
-        start = _dt(y, m, 1, tzinfo=timezone.utc)
-        last_day = calendar.monthrange(y, m)[1]
-        end = _dt(y, m, last_day, 23, 59, 59, tzinfo=timezone.utc)
+        _, _, start, end, _ = parse_month(month)
     except Exception:
         raise HTTPException(400, "Format month harus YYYY-MM")
 
@@ -440,36 +436,7 @@ async def export_orders_csv(request: Request, month: Optional[str] = None, statu
         q["status"] = status
     docs = await db.orders.find(q, {"_id": 0}).sort("created_at", 1).to_list(5000)
 
-    buf = io.StringIO()
-    w = csv.writer(buf)
-    w.writerow([
-        "ID", "Waktu", "Status", "Nama Pelanggan", "No. HP",
-        "Zona Pengiriman", "Ongkir", "Subtotal", "Total",
-        "Admin WA", "Item (nama x qty)", "Catatan",
-    ])
-    for o in docs:
-        created = o.get("created_at")
-        if hasattr(created, "isoformat"):
-            created = created.isoformat()
-        items_str = " | ".join(
-            f"{it.get('name')}{(' - ' + it.get('variant')) if it.get('variant') else ''} x {it.get('qty')}kg"
-            for it in (o.get("items") or [])
-        )
-        w.writerow([
-            o.get("id", ""),
-            created or "",
-            o.get("status", ""),
-            o.get("customer_name", ""),
-            o.get("customer_phone", ""),
-            o.get("zone_name", ""),
-            o.get("shipping_cost", 0),
-            o.get("subtotal", 0),
-            o.get("total", 0),
-            o.get("admin_name") or o.get("admin_phone", ""),
-            items_str,
-            o.get("customer_note", ""),
-        ])
-    csv_bytes = ("\ufeff" + buf.getvalue()).encode("utf-8")  # BOM so Excel opens UTF-8
+    csv_bytes = orders_to_csv_bytes(docs)
     filename = f"deli-coffee-orders-{month}.csv"
     return FastAPIResponse(
         content=csv_bytes,
@@ -508,19 +475,10 @@ async def bulk_assign_images(payload: BulkAssignPayload, request: Request):
 @api.get("/admin/stats/daily")
 async def stats_daily(request: Request, month: Optional[str] = None):
     """Return per-day order stats for `month` (YYYY-MM). Defaults to current month."""
-    from datetime import datetime as _dt
-    import calendar
     await require_admin(request, db)
-
-    if not month:
-        n = datetime.now(timezone.utc)
-        month = f"{n.year:04d}-{n.month:02d}"
+    month = month or current_month_str()
     try:
-        y, m = month.split("-")
-        y, m = int(y), int(m)
-        last_day = calendar.monthrange(y, m)[1]
-        start = _dt(y, m, 1, tzinfo=timezone.utc)
-        end = _dt(y, m, last_day, 23, 59, 59, tzinfo=timezone.utc)
+        y, m, start, end, last_day = parse_month(month)
     except Exception:
         raise HTTPException(400, "Format month harus YYYY-MM")
 
@@ -529,27 +487,8 @@ async def stats_daily(request: Request, month: Optional[str] = None):
         {"_id": 0, "created_at": 1, "status": 1, "total": 1},
     ).to_list(20000)
 
-    buckets = {d: {"count": 0, "revenue": 0} for d in range(1, last_day + 1)}
-    for o in docs:
-        c = o.get("created_at")
-        if hasattr(c, "day"):
-            day = c.day
-        else:
-            try:
-                day = _dt.fromisoformat(str(c)).day
-            except Exception:
-                continue
-        b = buckets.get(day)
-        if not b:
-            continue
-        b["count"] += 1
-        if o.get("status") != "cancelled":
-            b["revenue"] += int(o.get("total") or 0)
-
-    days = [
-        {"date": f"{y:04d}-{m:02d}-{d:02d}", "count": buckets[d]["count"], "revenue": buckets[d]["revenue"]}
-        for d in range(1, last_day + 1)
-    ]
+    buckets = bucket_orders_by_day(docs, last_day)
+    days = buckets_to_days(buckets, y, m, last_day)
     total_count = sum(d["count"] for d in days)
     total_revenue = sum(d["revenue"] for d in days)
     return {

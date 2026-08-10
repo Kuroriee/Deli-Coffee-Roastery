@@ -243,6 +243,21 @@ backend:
         agent: "testing"
         comment: "✅ BUG FIX VERIFIED (6 tests): GET /api/products?category=arabica-specialty confirms as-wine image is now correct Unsplash URL (https://images.unsplash.com/photo-1675306408031-...), NOT the broken base64 data. Image URL returns HTTP 200 with Content-Type: image/jpeg. Verified name='Arabica Wine Process', price=400000. Checked all 14 products - zero products have the broken base64 image 'iVBORw0KGgo='. Sanity checks passed: 4 categories, 7 shipping zones, valid settings. Bug fix confirmed working."
 
+  - task: "Backend refactoring: Extract helpers for stats & CSV export"
+    implemented: true
+    working: true
+    file: "backend/helpers.py, backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Refactored stats_daily and export_orders_csv endpoints by extracting helper functions into /app/backend/helpers.py: parse_month(), current_month_str(), bucket_orders_by_day(), buckets_to_days(), CSV_HEADER, order_to_csv_row(), orders_to_csv_bytes(). No public API contract changed - same URLs, query params, and response shapes."
+      - working: true
+        agent: "testing"
+        comment: "✅ REGRESSION TEST PASSED (17 new tests, 57 total): NO REGRESSION detected after refactoring. GET /api/admin/stats/daily: Auth check (401 without auth) ✅, default month returns correct structure (month, days array, total_count, total_revenue) ✅, days array length matches month days (28 for Feb 2026, 31 for Aug 2026) ✅, invalid month returns 400 ✅. Seeded 3 test orders on days 5, 10, 15 of current month - stats correctly counted all 3 orders ✅, specific days show count >= 1 ✅, total_revenue sums non-cancelled orders ✅. GET /api/admin/orders/export.csv: Auth check (401 without auth) ✅, returns correct Content-Type (text/csv) and Content-Disposition (attachment; filename=deli-coffee-orders-YYYY-MM.csv) ✅, body starts with UTF-8 BOM (EF BB BF) ✅, header row matches expected format ✅, contains all 3 seeded test orders ✅, invalid month returns 400 ✅. Sanity checks: GET /api/categories (4 items) ✅, /api/products ✅, /api/shipping-zones (7 items) ✅, /api/settings ✅, /api/admin/stats/restock-alerts ✅. Refactoring preserves exact behavior - all endpoints working as expected."
+
 frontend:
   - task: "Customer pages now fetch from API via useCatalog hook"
     implemented: true
@@ -283,7 +298,7 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 4
+  test_sequence: 5
 
 test_plan:
   current_focus: []
@@ -436,3 +451,71 @@ agent_communication:
       Both implementations behave identically for boolean active values (True/False).
       The new implementation is more defensive (handles None/missing gracefully with default True).
       No regression detected. All endpoints working as expected.
+  - agent: "main"
+    message: |
+      Backend refactoring completed: Extracted helper functions from stats_daily and export_orders_csv into new file /app/backend/helpers.py.
+      
+      Changes:
+      1. Created /app/backend/helpers.py with:
+         - parse_month(month) — returns (y, m, start, end, last_day)
+         - current_month_str() — returns current month as YYYY-MM
+         - bucket_orders_by_day(orders, last_day) — groups orders per day
+         - buckets_to_days(buckets, y, m, last_day) — flattens to list
+         - CSV_HEADER, order_to_csv_row(order), orders_to_csv_bytes(orders)
+      
+      2. Updated server.py to import and use these helpers in:
+         - GET /api/admin/stats/daily
+         - GET /api/admin/orders/export.csv
+      
+      NO PUBLIC API CONTRACT CHANGED — same URLs, same query params, same response shapes.
+      
+      Please verify NO REGRESSION on:
+      - GET /api/admin/stats/daily (auth checks, default month, specific months, invalid month, seeded orders)
+      - GET /api/admin/orders/export.csv (auth checks, CSV format, UTF-8 BOM, headers, content)
+      - Other endpoints sanity check (categories, products, shipping-zones, settings, restock-alerts)
+  - agent: "testing"
+    message: |
+      ✅ REGRESSION TEST COMPLETE (57/57 tests passed - 17 new regression tests)
+      
+      Backend refactoring verified: NO REGRESSION detected
+      
+      REGRESSION TEST COVERAGE:
+      
+      1. GET /api/admin/stats/daily (7 tests) - All passed ✅
+         - Without auth → 401 ✅
+         - With admin, default month → 200 with correct structure (month, days, total_count, total_revenue) ✅
+         - Days array length matches month days:
+           * Current month: correct number of days ✅
+           * Feb 2026: 28 days (not leap year) ✅
+           * Aug 2026: 31 days ✅
+         - Each day has correct format (YYYY-MM-DD) ✅
+         - Invalid month → 400 ✅
+      
+      2. Seeded Orders Test (2 tests) - All passed ✅
+         - Seeded 3 test orders on days 5, 10, 15 of current month ✅
+         - GET /api/admin/stats/daily correctly counts all 3 orders ✅
+         - Specific days (5, 10, 15) show count >= 1 ✅
+         - total_revenue sums only non-cancelled orders (3 × 400000 = 1,200,000) ✅
+      
+      3. GET /api/admin/orders/export.csv (3 tests) - All passed ✅
+         - Without auth → 401 ✅
+         - With admin, default month → 200 ✅
+           * Content-Type: text/csv; charset=utf-8 ✅
+           * Content-Disposition: attachment; filename="deli-coffee-orders-YYYY-MM.csv" ✅
+           * Body starts with UTF-8 BOM (EF BB BF) ✅
+           * Header row: ID,Waktu,Status,Nama Pelanggan,No. HP,Zona Pengiriman,Ongkir,Subtotal,Total,Admin WA,Item (nama x qty),Catatan ✅
+           * Contains all 3 seeded test orders ✅
+         - Invalid month → 400 ✅
+      
+      4. Other Endpoints Sanity Check (5 tests) - All passed ✅
+         - GET /api/categories → 4 categories ✅
+         - GET /api/products → products list ✅
+         - GET /api/shipping-zones → 7 zones ✅
+         - GET /api/settings → settings with brand_name ✅
+         - GET /api/admin/stats/restock-alerts → correct structure (no_image, zero_price, inactive, total_products) ✅
+      
+      CONCLUSION:
+      Refactoring preserves exact behavior. All helper functions work correctly.
+      stats_daily and export_orders_csv endpoints maintain identical functionality.
+      No breaking changes. All 57 backend tests passed (40 existing + 17 new regression tests).
+      Backend is production-ready.

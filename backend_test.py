@@ -816,6 +816,264 @@ test("POST /api/admin/products/bulk-images without auth returns 401", test_bulk_
 
 print()
 print("=" * 80)
+print("SECTION 5: REGRESSION TESTS - REFACTORED STATS & CSV EXPORT")
+print("=" * 80)
+
+# Test stats/daily endpoint
+def test_stats_daily_without_auth():
+    r = requests.get(f"{API_URL}/admin/stats/daily")
+    assert_status(r, 401, "Should return 401 for /api/admin/stats/daily without auth")
+
+def test_stats_daily_default_month():
+    r = requests.get(f"{API_URL}/admin/stats/daily", headers=headers_admin)
+    assert_status(r, 200)
+    data = r.json()
+    
+    # Check response structure
+    assert_json_field(data, 'month')
+    assert_json_field(data, 'days')
+    assert_json_field(data, 'total_count')
+    assert_json_field(data, 'total_revenue')
+    
+    # Verify month format YYYY-MM
+    month = data['month']
+    if len(month) != 7 or month[4] != '-':
+        raise AssertionError(f"Month should be YYYY-MM format, got: {month}")
+    
+    # Verify days is a list
+    if not isinstance(data['days'], list):
+        raise AssertionError("days should be a list")
+    
+    # Verify days array length matches month days
+    y, m = int(month[:4]), int(month[5:7])
+    import calendar
+    expected_days = calendar.monthrange(y, m)[1]
+    if len(data['days']) != expected_days:
+        raise AssertionError(f"Expected {expected_days} days for {month}, got {len(data['days'])}")
+    
+    # Verify each day has correct structure
+    for day in data['days']:
+        if 'date' not in day:
+            raise AssertionError("Each day should have 'date' field")
+        if 'count' not in day:
+            raise AssertionError("Each day should have 'count' field")
+        if 'revenue' not in day:
+            raise AssertionError("Each day should have 'revenue' field")
+        # Verify date format YYYY-MM-DD
+        if len(day['date']) != 10 or day['date'][4] != '-' or day['date'][7] != '-':
+            raise AssertionError(f"Date should be YYYY-MM-DD format, got: {day['date']}")
+
+def test_stats_daily_feb_2026():
+    r = requests.get(f"{API_URL}/admin/stats/daily?month=2026-02", headers=headers_admin)
+    assert_status(r, 200)
+    data = r.json()
+    assert_json_field(data, 'month', '2026-02')
+    
+    # Feb 2026 is not a leap year (2026 % 4 != 0), so 28 days
+    if len(data['days']) != 28:
+        raise AssertionError(f"Expected 28 days for Feb 2026, got {len(data['days'])}")
+
+def test_stats_daily_aug_2026():
+    r = requests.get(f"{API_URL}/admin/stats/daily?month=2026-08", headers=headers_admin)
+    assert_status(r, 200)
+    data = r.json()
+    assert_json_field(data, 'month', '2026-08')
+    
+    # August has 31 days
+    if len(data['days']) != 31:
+        raise AssertionError(f"Expected 31 days for Aug 2026, got {len(data['days'])}")
+
+def test_stats_daily_invalid_month():
+    r = requests.get(f"{API_URL}/admin/stats/daily?month=invalid", headers=headers_admin)
+    assert_status(r, 400, "Should return 400 for invalid month format")
+
+# Seed test orders for stats verification
+test_order_ids_for_stats = []
+
+def test_seed_orders_for_stats():
+    global test_order_ids_for_stats
+    
+    # Get current month to seed orders
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    
+    # Create 3 orders on different days of current month
+    # Day 5, 10, 15 of current month
+    days = [5, 10, 15]
+    
+    for day in days:
+        order_date = datetime(now.year, now.month, day, 12, 0, 0, tzinfo=timezone.utc)
+        order_id = f"regr_ord_{day}"
+        
+        # Insert directly into MongoDB
+        db.orders.insert_one({
+            "id": order_id,
+            "customer_name": f"Regression Test Customer {day}",
+            "customer_phone": "08123456789",
+            "customer_note": "Regression test order",
+            "items": [
+                {
+                    "product_id": "as-wine",
+                    "name": "Arabica Wine Process",
+                    "price": 400000,
+                    "qty": 1
+                }
+            ],
+            "zone_id": "pickup",
+            "zone_name": "Pickup",
+            "subtotal": 400000,
+            "shipping_cost": 0,
+            "total": 400000,
+            "admin_phone": "081263680926",
+            "admin_name": "Deni",
+            "status": "new",
+            "created_at": order_date
+        })
+        test_order_ids_for_stats.append(order_id)
+    
+    print(f"  Seeded 3 test orders: {test_order_ids_for_stats}")
+
+def test_stats_daily_with_seeded_orders():
+    r = requests.get(f"{API_URL}/admin/stats/daily", headers=headers_admin)
+    assert_status(r, 200)
+    data = r.json()
+    
+    # Verify total_count includes our 3 orders (plus any existing)
+    if data['total_count'] < 3:
+        raise AssertionError(f"Expected total_count >= 3, got {data['total_count']}")
+    
+    # Verify specific days have count >= 1
+    days_with_orders = [5, 10, 15]
+    for day_num in days_with_orders:
+        found = False
+        for day in data['days']:
+            # Extract day from date (YYYY-MM-DD)
+            date_day = int(day['date'].split('-')[2])
+            if date_day == day_num:
+                found = True
+                if day['count'] < 1:
+                    raise AssertionError(f"Day {day_num} should have count >= 1, got {day['count']}")
+                break
+        if not found:
+            raise AssertionError(f"Day {day_num} not found in days array")
+    
+    # Verify total_revenue sums only non-cancelled orders
+    # Our 3 test orders are all 'new' status, so should contribute to revenue
+    expected_revenue_from_test = 3 * 400000  # 3 orders × 400000
+    if data['total_revenue'] < expected_revenue_from_test:
+        raise AssertionError(f"Expected total_revenue >= {expected_revenue_from_test}, got {data['total_revenue']}")
+
+# Test CSV export endpoint
+def test_export_csv_without_auth():
+    r = requests.get(f"{API_URL}/admin/orders/export.csv")
+    assert_status(r, 401, "Should return 401 for /api/admin/orders/export.csv without auth")
+
+def test_export_csv_default_month():
+    r = requests.get(f"{API_URL}/admin/orders/export.csv", headers=headers_admin)
+    assert_status(r, 200)
+    
+    # Verify Content-Type
+    content_type = r.headers.get('Content-Type', '')
+    if 'text/csv' not in content_type:
+        raise AssertionError(f"Expected Content-Type to contain 'text/csv', got: {content_type}")
+    
+    # Verify Content-Disposition
+    content_disp = r.headers.get('Content-Disposition', '')
+    if 'attachment' not in content_disp:
+        raise AssertionError(f"Expected Content-Disposition to contain 'attachment', got: {content_disp}")
+    if 'filename="deli-coffee-orders-' not in content_disp:
+        raise AssertionError(f"Expected filename to start with 'deli-coffee-orders-', got: {content_disp}")
+    
+    # Verify UTF-8 BOM
+    content = r.content
+    if not content.startswith(b'\xef\xbb\xbf'):
+        raise AssertionError("CSV should start with UTF-8 BOM (EF BB BF)")
+    
+    # Decode and verify header row
+    text = content.decode('utf-8')
+    lines = text.split('\n')
+    if len(lines) < 2:
+        raise AssertionError("CSV should have at least header + 1 data row")
+    
+    # Remove BOM from first line and strip any trailing whitespace
+    header = lines[0].replace('\ufeff', '').strip()
+    expected_header = "ID,Waktu,Status,Nama Pelanggan,No. HP,Zona Pengiriman,Ongkir,Subtotal,Total,Admin WA,Item (nama x qty),Catatan"
+    if header != expected_header:
+        raise AssertionError(f"Expected header: {expected_header}\nGot: {header}\nExpected bytes: {expected_header.encode()}\nGot bytes: {header.encode()}")
+    
+    # Verify our 3 test orders are in the CSV
+    csv_text = text
+    for order_id in test_order_ids_for_stats:
+        if order_id not in csv_text:
+            raise AssertionError(f"Order {order_id} not found in CSV export")
+
+def test_export_csv_invalid_month():
+    r = requests.get(f"{API_URL}/admin/orders/export.csv?month=invalid", headers=headers_admin)
+    assert_status(r, 400, "Should return 400 for invalid month format")
+
+def test_cleanup_seeded_orders():
+    # Delete the 3 test orders
+    for order_id in test_order_ids_for_stats:
+        db.orders.delete_one({"id": order_id})
+    print(f"  Cleaned up {len(test_order_ids_for_stats)} test orders")
+
+# Test other endpoints for regression
+def test_regression_categories():
+    r = requests.get(f"{API_URL}/categories")
+    assert_status(r, 200)
+    data = r.json()
+    if len(data) != 4:
+        raise AssertionError(f"Expected 4 categories, got {len(data)}")
+
+def test_regression_products():
+    r = requests.get(f"{API_URL}/products")
+    assert_status(r, 200)
+    data = r.json()
+    if len(data) == 0:
+        raise AssertionError("Expected products, got empty list")
+
+def test_regression_shipping_zones():
+    r = requests.get(f"{API_URL}/shipping-zones")
+    assert_status(r, 200)
+    data = r.json()
+    if len(data) != 7:
+        raise AssertionError(f"Expected 7 shipping zones, got {len(data)}")
+
+def test_regression_settings():
+    r = requests.get(f"{API_URL}/settings")
+    assert_status(r, 200)
+    data = r.json()
+    assert_json_field(data, 'brand_name')
+
+def test_regression_restock_alerts():
+    r = requests.get(f"{API_URL}/admin/stats/restock-alerts", headers=headers_admin)
+    assert_status(r, 200)
+    data = r.json()
+    assert_json_field(data, 'no_image')
+    assert_json_field(data, 'zero_price')
+    assert_json_field(data, 'inactive')
+    assert_json_field(data, 'total_products')
+
+# Run regression tests
+test("GET /api/admin/stats/daily without auth returns 401", test_stats_daily_without_auth)
+test("GET /api/admin/stats/daily with default month returns correct structure", test_stats_daily_default_month)
+test("GET /api/admin/stats/daily?month=2026-02 returns 28 days", test_stats_daily_feb_2026)
+test("GET /api/admin/stats/daily?month=2026-08 returns 31 days", test_stats_daily_aug_2026)
+test("GET /api/admin/stats/daily?month=invalid returns 400", test_stats_daily_invalid_month)
+test("Seed 3 test orders on different days", test_seed_orders_for_stats)
+test("GET /api/admin/stats/daily counts seeded orders correctly", test_stats_daily_with_seeded_orders)
+test("GET /api/admin/orders/export.csv without auth returns 401", test_export_csv_without_auth)
+test("GET /api/admin/orders/export.csv returns correct CSV format", test_export_csv_default_month)
+test("GET /api/admin/orders/export.csv?month=invalid returns 400", test_export_csv_invalid_month)
+test("Cleanup seeded test orders", test_cleanup_seeded_orders)
+test("REGRESSION: GET /api/categories returns 4 categories", test_regression_categories)
+test("REGRESSION: GET /api/products returns products", test_regression_products)
+test("REGRESSION: GET /api/shipping-zones returns 7 zones", test_regression_shipping_zones)
+test("REGRESSION: GET /api/settings returns settings", test_regression_settings)
+test("REGRESSION: GET /api/admin/stats/restock-alerts returns correct structure", test_regression_restock_alerts)
+
+print()
+print("=" * 80)
 print("CLEANUP")
 print("=" * 80)
 
