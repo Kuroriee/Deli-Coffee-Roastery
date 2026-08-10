@@ -67,6 +67,24 @@ const AdminOrders = () => {
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [status]);
 
+  const buildThankYouWA = (o) => {
+    const msg = `Halo ${o.customer_name}, terima kasih atas pesanannya di Deli Coffee!\n\nPesanan Anda sudah kami proses & siap dikirim.\nRincian:\n- Total: ${formatRupiah(o.total)}\n${o.zone_name ? `- Pengiriman: ${o.zone_name}\n` : ""}\nSelamat menikmati kopinya! Jika ada masukan, boleh langsung balas pesan ini ya. — ${o.admin_name || "Deli Coffee"}`;
+    return buildWhatsAppLink(o.customer_phone, msg);
+  };
+
+  const markFulfilled = async (o) => {
+    try {
+      await adminApi.updateOrderStatus(o.id, "fulfilled");
+      toast.success("Pesanan ditandai selesai");
+      // Buka WA kartu terima kasih
+      const url = buildThankYouWA(o);
+      window.open(url, "_blank", "noopener,noreferrer");
+      load();
+    } catch {
+      toast.error("Gagal memperbarui");
+    }
+  };
+
   const updateStatus = async (id, s) => {
     try {
       await adminApi.updateOrderStatus(id, s);
@@ -198,8 +216,8 @@ const AdminOrders = () => {
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   {o.status !== "fulfilled" && (
-                    <button onClick={() => updateStatus(o.id, "fulfilled")} className="rounded-full px-3 py-1.5 text-xs font-semibold bg-[#1B7A43] text-[#F6EFE4] hover:bg-[#145F34] inline-flex items-center gap-1">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Tandai Selesai
+                    <button onClick={() => markFulfilled(o)} className="rounded-full px-3 py-1.5 text-xs font-semibold bg-[#1B7A43] text-[#F6EFE4] hover:bg-[#145F34] inline-flex items-center gap-1" title="Tandai selesai & kirim WA terima kasih ke pelanggan">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Selesai & Kirim Terima Kasih
                     </button>
                   )}
                   {o.status !== "cancelled" && (

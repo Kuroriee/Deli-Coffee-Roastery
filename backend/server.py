@@ -504,6 +504,86 @@ async def bulk_assign_images(payload: BulkAssignPayload, request: Request):
     return {"updated": updated, "not_found": not_found}
 
 
+# ---------- DASHBOARD STATS ----------
+@api.get("/admin/stats/daily")
+async def stats_daily(request: Request, month: Optional[str] = None):
+    """Return per-day order stats for `month` (YYYY-MM). Defaults to current month."""
+    from datetime import datetime as _dt
+    import calendar
+    await require_admin(request, db)
+
+    if not month:
+        n = datetime.now(timezone.utc)
+        month = f"{n.year:04d}-{n.month:02d}"
+    try:
+        y, m = month.split("-")
+        y, m = int(y), int(m)
+        last_day = calendar.monthrange(y, m)[1]
+        start = _dt(y, m, 1, tzinfo=timezone.utc)
+        end = _dt(y, m, last_day, 23, 59, 59, tzinfo=timezone.utc)
+    except Exception:
+        raise HTTPException(400, "Format month harus YYYY-MM")
+
+    docs = await db.orders.find(
+        {"created_at": {"$gte": start, "$lte": end}},
+        {"_id": 0, "created_at": 1, "status": 1, "total": 1},
+    ).to_list(20000)
+
+    buckets = {d: {"count": 0, "revenue": 0} for d in range(1, last_day + 1)}
+    for o in docs:
+        c = o.get("created_at")
+        if hasattr(c, "day"):
+            day = c.day
+        else:
+            try:
+                day = _dt.fromisoformat(str(c)).day
+            except Exception:
+                continue
+        b = buckets.get(day)
+        if not b:
+            continue
+        b["count"] += 1
+        if o.get("status") != "cancelled":
+            b["revenue"] += int(o.get("total") or 0)
+
+    days = [
+        {"date": f"{y:04d}-{m:02d}-{d:02d}", "count": buckets[d]["count"], "revenue": buckets[d]["revenue"]}
+        for d in range(1, last_day + 1)
+    ]
+    total_count = sum(d["count"] for d in days)
+    total_revenue = sum(d["revenue"] for d in days)
+    return {
+        "month": month,
+        "days": days,
+        "total_count": total_count,
+        "total_revenue": total_revenue,
+    }
+
+
+@api.get("/admin/stats/restock-alerts")
+async def restock_alerts(request: Request):
+    """Products needing attention: no image, price 0, or inactive."""
+    await require_admin(request, db)
+    prods = await db.products.find({}, {"_id": 0}).to_list(2000)
+    no_image = []
+    zero_price = []
+    inactive = []
+    for p in prods:
+        img = (p.get("image") or "").strip()
+        if not img:
+            no_image.append(p)
+        if not p.get("price"):
+            zero_price.append(p)
+        if p.get("active") is False:
+            inactive.append(p)
+    return {
+        "no_image": no_image,
+        "zero_price": zero_price,
+        "inactive": inactive,
+        "total_products": len(prods),
+    }
+
+
 # ---------------- root ----------------
 @api.get("/")
 async def root():
