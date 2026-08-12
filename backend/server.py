@@ -19,7 +19,7 @@ from models import (
     Order, OrderCreate, OrderStatusUpdate,
 )
 from auth import (
-    fetch_emergent_session, set_session_cookie, clear_session_cookie,
+    verify_google_access_token, set_session_cookie, clear_session_cookie,
     current_user, require_admin, is_email_whitelisted, SESSION_DAYS,
 )
 from seed import seed_all
@@ -51,13 +51,14 @@ async def on_start():
 
 
 # ---------------- AUTH ----------------
-@api.post("/auth/session")
-async def auth_session(payload: dict, response: Response):
-    session_id = (payload or {}).get("session_id")
-    if not session_id:
-        raise HTTPException(400, "session_id wajib")
-    data = await fetch_emergent_session(session_id)
-    email = (data.get("email") or "").lower().strip()
+@api.post("/auth/google")
+async def auth_google(payload: dict, response: Response):
+    access_token = (payload or {}).get("access_token")
+    if not access_token:
+        raise HTTPException(400, "access_token wajib")
+
+    idinfo = await verify_google_access_token(access_token)
+    email = (idinfo.get("email") or "").lower().strip()
     if not email:
         raise HTTPException(401, "Email tidak ditemukan")
     if not is_email_whitelisted(email):
@@ -69,8 +70,8 @@ async def auth_session(payload: dict, response: Response):
         await db.users.update_one(
             {"user_id": user_id},
             {"$set": {
-                "name": data.get("name") or existing.get("name", ""),
-                "picture": data.get("picture") or existing.get("picture", ""),
+                "name": idinfo.get("name") or existing.get("name", ""),
+                "picture": idinfo.get("picture") or existing.get("picture", ""),
                 "is_admin": True,
             }},
         )
@@ -79,13 +80,13 @@ async def auth_session(payload: dict, response: Response):
         await db.users.insert_one({
             "user_id": user_id,
             "email": email,
-            "name": data.get("name") or email.split("@")[0],
-            "picture": data.get("picture") or "",
+            "name": idinfo.get("name") or email.split("@")[0],
+            "picture": idinfo.get("picture") or "",
             "is_admin": True,
             "created_at": datetime.now(timezone.utc),
         })
 
-    session_token = data.get("session_token") or f"tok_{uuid.uuid4().hex}"
+    session_token = f"tok_{uuid.uuid4().hex}"
     expires_at = datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)
     await db.user_sessions.insert_one({
         "user_id": user_id,
@@ -268,7 +269,6 @@ async def get_settings():
     doc = await db.settings.find_one({"_key": "main"}, {"_id": 0, "_key": 0})
     if not doc:
         return Settings()
-    # ensure defaults
     base = Settings().model_dump()
     base.update({k: v for k, v in doc.items() if v is not None})
     return base
@@ -513,7 +513,7 @@ async def restock_alerts(request: Request):
             no_image.append(p)
         if not p.get("price"):
             zero_price.append(p)
-        if not p.get("active", True):  # explicit inactive flag
+        if not p.get("active", True):
             inactive.append(p)
     return {
         "no_image": no_image,
@@ -534,7 +534,7 @@ app.include_router(api)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origins=["https://delidecop.com"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

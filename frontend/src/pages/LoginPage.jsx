@@ -1,12 +1,53 @@
+import { useEffect, useState, useCallback } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { LogIn, ShieldCheck, Coffee } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+
 const LoginPage = () => {
-  const { login } = useAuth();
+  const { loginWithGoogle } = useAuth();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
-  const error = params.get("error");
+  const [error, setError] = useState(params.get("error"));
+  const [ready, setReady] = useState(false);
+  const [tokenClient, setTokenClient] = useState(null);
+
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.async = true;
+    script.onload = () => {
+      const client = window.google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: "openid email profile",
+        callback: async (response) => {
+          if (response.error) {
+            setError("Login Google gagal atau dibatalkan.");
+            return;
+          }
+          try {
+            await loginWithGoogle(response.access_token);
+          } catch (err) {
+            setError(
+              err?.response?.data?.detail ||
+                "Login gagal. Pastikan email Anda terdaftar sebagai admin."
+            );
+          }
+        },
+      });
+      setTokenClient(client);
+      setReady(true);
+    };
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, [loginWithGoogle]);
+
+  const handleLoginClick = useCallback(() => {
+    if (tokenClient) tokenClient.requestAccessToken();
+  }, [tokenClient]);
 
   return (
     <div className="min-h-screen bg-[#F6EFE4] flex items-center justify-center px-5">
@@ -41,8 +82,9 @@ const LoginPage = () => {
 
         <button
           type="button"
-          onClick={login}
-          className="btn-primary w-full mt-6 rounded-full h-12 inline-flex items-center justify-center gap-2 font-semibold"
+          onClick={handleLoginClick}
+          disabled={!ready}
+          className="btn-primary w-full mt-6 rounded-full h-12 inline-flex items-center justify-center gap-2 font-semibold disabled:opacity-60"
         >
           <LogIn className="h-4 w-4" /> Login dengan Google
         </button>
@@ -50,7 +92,7 @@ const LoginPage = () => {
         <div className="mt-6 flex items-start gap-2 text-xs text-[#3B2412]/70 bg-[#F6EFE4] rounded-xl p-3">
           <ShieldCheck className="h-4 w-4 text-[#1B7A43] mt-0.5" />
           <div>
-            Login aman dikelola oleh Emergent Auth. Session bertahan 7 hari dan
+            Login aman menggunakan Google OAuth. Session bertahan 7 hari dan
             bisa Anda logout kapan saja.
           </div>
         </div>

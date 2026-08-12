@@ -12,7 +12,6 @@ export const AuthProvider = ({ children }) => {
       const u = await authApi.me();
       setUser(u);
     } catch (err) {
-      // Not logged in — normal case, log only for non-401 errors
       if (err?.response && err.response.status !== 401) {
         console.warn("AuthContext: auth check failed", err.response.status);
       }
@@ -23,17 +22,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    if (window.location.hash && window.location.hash.includes("session_id=")) {
-      setLoading(false);
-      return;
-    }
     checkAuth();
   }, [checkAuth]);
 
-  const login = useCallback(() => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    const redirectUrl = window.location.origin + "/admin";
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  const loginWithGoogle = useCallback(async (accessToken) => {
+    const result = await authApi.google(accessToken);
+    setUser(result.user);
+    window.location.href = "/admin";
   }, []);
 
   const logout = useCallback(async () => {
@@ -47,10 +42,9 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, logout, refresh: checkAuth, setUser }),
-    [user, loading, login, logout, checkAuth]
+    () => ({ user, loading, loginWithGoogle, logout, refresh: checkAuth, setUser }),
+    [user, loading, loginWithGoogle, logout, checkAuth]
   );
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 

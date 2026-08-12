@@ -4,9 +4,9 @@ from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException, Request, Response
 from typing import Optional
 
-EMERGENT_SESSION_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
 SESSION_COOKIE = "session_token"
 SESSION_DAYS = 7
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 
 # Admin whitelist — hanya email berikut yang bisa login sebagai admin
 ADMIN_WHITELIST = {
@@ -37,16 +37,22 @@ def clear_session_cookie(response: Response):
     response.delete_cookie(SESSION_COOKIE, path="/")
 
 
-async def fetch_emergent_session(session_id: str) -> dict:
+async def verify_google_access_token(access_token: str) -> dict:
+    """Verifikasi access token dari popup Google Sign-In, ambil profil user."""
     async with httpx.AsyncClient(timeout=15.0) as client:
-        r = await client.get(EMERGENT_SESSION_URL, headers={"X-Session-ID": session_id})
+        r = await client.get(
+            GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
         if r.status_code != 200:
-            raise HTTPException(status_code=401, detail="Invalid Emergent session")
-        return r.json()
+            raise HTTPException(status_code=401, detail="Token Google tidak valid")
+        data = r.json()
+    if data.get("email_verified") not in (True, "true"):
+        raise HTTPException(status_code=401, detail="Email Google belum terverifikasi")
+    return data
 
 
 async def get_session_token_from_request(request: Request) -> Optional[str]:
-    # cookie first, then Authorization header
     tok = request.cookies.get(SESSION_COOKIE)
     if tok:
         return tok
