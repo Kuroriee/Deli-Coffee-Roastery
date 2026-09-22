@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Instagram, MapPin, Phone, Clock, Coffee, Star } from "lucide-react";
+import { Instagram, MapPin, Phone, Clock, Star } from "lucide-react";
 import { useCatalog } from "../../hooks/useCatalog";
 import SocialFab from "./SocialFab";
 
