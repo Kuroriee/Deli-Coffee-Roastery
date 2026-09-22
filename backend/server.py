@@ -534,7 +534,7 @@ app.include_router(api)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["https://delidecop.com"],
+    allow_origins=["https://delidecop.com", "https://deli-decop.ks-kuro11.workers.dev"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
