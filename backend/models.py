@@ -134,6 +134,9 @@ class Settings(BaseModel):
     tagline: str = "Kopi Nusantara, Dipanggang di Kota Medan"
     sub_tagline: str = "Biji arabika & robusta pilihan, roasting harian oleh tangan lokal."
     instagram: str = "delicoffee.roastery"
+    tiktok: str = ""
+t   iktok_shop: str = ""
+    shopee: str = ""
     address: str = "Gg. Sedar, Binjai, Kec. Medan Denai, Kota Medan, Sumatera Utara 20228"
     plus_code: str = "HPF9+GX Binjai, Kota Medan"
     opening_hour: int = 9

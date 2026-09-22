@@ -49,6 +49,9 @@ const AdminSettings = () => {
         <F label="Tagline" full><input className="input" value={s.tagline} onChange={(e) => set({ tagline: e.target.value })} /></F>
         <F label="Sub Tagline" full><input className="input" value={s.sub_tagline} onChange={(e) => set({ sub_tagline: e.target.value })} /></F>
         <F label="Instagram (tanpa @)"><input className="input" value={s.instagram} onChange={(e) => set({ instagram: e.target.value })} /></F>
+        <F label="Link TikTok" full><input className="input" value={s.tiktok} onChange={(e) => set({ tiktok: e.target.value })} placeholder="https://www.tiktok.com/@namaakun" /></F>
+        <F label="Link TikTok Shop" full><input className="input" value={s.tiktok_shop} onChange={(e) => set({ tiktok_shop: e.target.value })} placeholder="https://shop.tiktok.com/@namatoko" /></F>
+        <F label="Link Shopee" full><input className="input" value={s.shopee} onChange={(e) => set({ shopee: e.target.value })} placeholder="https://shopee.co.id/namatoko" /></F>
         <F label="Plus Code"><input className="input" value={s.plus_code} onChange={(e) => set({ plus_code: e.target.value })} /></F>
         <F label="Alamat" full><textarea rows={2} className="input" value={s.address} onChange={(e) => set({ address: e.target.value })} /></F>
         <F label="Jam Buka (0-23)"><input type="number" className="input" value={s.opening_hour} onChange={(e) => set({ opening_hour: e.target.value })} /></F>
