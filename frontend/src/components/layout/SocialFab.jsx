@@ -52,10 +52,11 @@ const SocialFab = () => {
       {links.map((l, i) => {
         const Icon = l.icon;
         return (
-          
-            key={l.key}
-            href={l.href}
-            target="_blank"
+            
+            <a
+             key={l.key}
+             href={l.href}
+             target="_blank"
             rel="noopener noreferrer"
             aria-label={l.label}
             className={`h-12 w-12 rounded-full bg-[#3B2412] text-[#F6EFE4] shadow-lg flex items-center justify-center hover:bg-[#1B7A43] transition-all duration-200 ${

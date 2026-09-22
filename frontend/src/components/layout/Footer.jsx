@@ -80,7 +80,7 @@ const Footer = () => {
               ))}
               <li className="flex items-start gap-2">
                 <Instagram className="h-4 w-4 mt-0.5 text-[#C9A227]" />
-                
+                <a
                   href={brand.instagramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
