@@ -10,7 +10,7 @@ const Footer = () => {
         <div className="md:col-span-2">
           <div className="flex items-center gap-3">
             <span className="h-11 w-11 rounded-full bg-[#F6EFE4] text-[#3B2412] flex items-center justify-center">
-              <Coffee className="h-5 w-5" />
+              <img src="/logo.png" alt="Deli Coffee" className="h-full w-full object-cover rounded-full" />
             </span>
             <div>
               <div className="font-script text-3xl leading-none">
@@ -22,9 +22,9 @@ const Footer = () => {
             </div>
           </div>
           <p className="mt-5 text-[#F6EFE4]/80 max-w-md leading-relaxed">
-            Roastery lokal Medan yang memanggang biji arabika dan robusta pilihan
-            dari dataran tinggi Sumatera. Setiap batch dipanggang harian, dikemas
-            segar untuk Anda.
+            Roastery lokal Medan yang memanggang biji arabika dan robusta
+            pilihan dari dataran tinggi Sumatera. Setiap batch dipanggang
+            harian, dikemas segar untuk Anda.
           </p>
           <div className="mt-6 flex items-center gap-2 text-sm">
             <div className="flex items-center gap-1 text-[#C9A227]">
@@ -41,10 +41,26 @@ const Footer = () => {
         <div>
           <div className="font-serif-warm text-lg mb-4">Navigasi</div>
           <ul className="space-y-2 text-[#F6EFE4]/80 text-sm">
-            <li><Link to="/" className="hover:text-[#C9A227]">Beranda</Link></li>
-            <li><Link to="/katalog" className="hover:text-[#C9A227]">Katalog</Link></li>
-            <li><Link to="/katalog/house-blend" className="hover:text-[#C9A227]">House Blend</Link></li>
-            <li><Link to="/kontak" className="hover:text-[#C9A227]">Kontak</Link></li>
+            <li>
+              <Link to="/" className="hover:text-[#C9A227]">
+                Beranda
+              </Link>
+            </li>
+            <li>
+              <Link to="/katalog" className="hover:text-[#C9A227]">
+                Katalog
+              </Link>
+            </li>
+            <li>
+              <Link to="/katalog/house-blend" className="hover:text-[#C9A227]">
+                House Blend
+              </Link>
+            </li>
+            <li>
+              <Link to="/kontak" className="hover:text-[#C9A227]">
+                Kontak
+              </Link>
+            </li>
           </ul>
         </div>
 
@@ -55,7 +71,8 @@ const Footer = () => {
               <li key={a.phone} className="flex items-start gap-2">
                 <Phone className="h-4 w-4 mt-0.5 text-[#C9A227]" />
                 <span>
-                  {a.name} — <span className="whitespace-nowrap">{a.display}</span>
+                  {a.name} —{" "}
+                  <span className="whitespace-nowrap">{a.display}</span>
                 </span>
               </li>
             ))}
@@ -85,8 +102,8 @@ const Footer = () => {
       <div className="border-t border-[#F6EFE4]/10">
         <div className="max-w-7xl mx-auto px-5 lg:px-8 py-5 text-xs text-[#F6EFE4]/60 flex flex-col sm:flex-row justify-between items-center gap-2">
           <div>
-            © {new Date().getFullYear()} Deli Coffee Roastery Co. — Dipanggang di
-            Medan dengan hati.
+            © {new Date().getFullYear()} Deli Coffee Roastery Co. — Dipanggang
+            di Medan dengan hati.
           </div>
           <div>Kopi Nusantara · Arabika · Robusta · House Blend</div>
         </div>

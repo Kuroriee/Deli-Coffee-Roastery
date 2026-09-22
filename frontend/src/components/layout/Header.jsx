@@ -7,7 +7,7 @@ import { useCatalog } from "../../hooks/useCatalog";
 const navLinks = [
   { to: "/", label: "Beranda" },
   { to: "/katalog", label: "Katalog" },
-  { to: "/kontak", label: "Kontak" }
+  { to: "/kontak", label: "Kontak" },
 ];
 
 const Header = () => {
@@ -25,7 +25,11 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-5 lg:px-8 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group">
           <span className="relative flex items-center justify-center h-10 w-10 rounded-full bg-[#3B2412] text-[#F6EFE4] group-hover:bg-[#1B7A43] transition-colors">
-            <Coffee className="h-5 w-5" />
+            <img
+              src="/logo.png"
+              alt="Deli Coffee"
+              className="h-full w-full object-cover rounded-full"
+            />
           </span>
           <div className="leading-tight">
             <div className="font-script text-2xl text-[#3B2412] -mb-1">
@@ -66,6 +70,7 @@ const Header = () => {
           >
             <Instagram className="h-5 w-5" />
           </a>
+          
 
           <Link
             to="/keranjang"
