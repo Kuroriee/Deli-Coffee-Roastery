@@ -12,6 +12,7 @@ import ProductsPage from "./pages/ProductsPage";
 import CartPage from "./pages/CartPage";
 import ContactPage from "./pages/ContactPage";
 import LoginPage from "./pages/LoginPage";
+import LinksPage from "./pages/LinksPage";
 import AuthCallback from "./pages/AuthCallback";
 
 // Admin
@@ -33,8 +34,9 @@ const AppRouter = () => {
     return <AuthCallback />;
   }
 
-  const isAdmin = location.pathname.startsWith("/admin");
-  const isAuthArea = isAdmin || location.pathname === "/login";
+const isAdmin = location.pathname.startsWith("/admin");
+const isLinks = location.pathname === "/links";
+const isAuthArea = isAdmin || location.pathname === "/login" || isLinks;
 
   return (
     <>
@@ -46,6 +48,7 @@ const AppRouter = () => {
         <Route path="/keranjang" element={<CartPage />} />
         <Route path="/kontak" element={<ContactPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/links" element={<LinksPage />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="pesanan" element={<AdminOrders />} />
