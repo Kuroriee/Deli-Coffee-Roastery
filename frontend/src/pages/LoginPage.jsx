@@ -31,7 +31,7 @@ const LoginPage = () => {
           } catch (err) {
             setError(
               err?.response?.data?.detail ||
-                "Login gagal. Pastikan email Anda terdaftar sebagai admin."
+                "Login gagal. Pastikan email Anda terdaftar sebagai admin.",
             );
           }
         },
@@ -54,7 +54,7 @@ const LoginPage = () => {
       <div className="max-w-md w-full bg-[#FBF6EC] rounded-3xl border border-[#3B2412]/10 p-8 shadow-xl">
         <div className="flex items-center gap-3">
           <span className="h-12 w-12 rounded-full bg-[#3B2412] text-[#F6EFE4] flex items-center justify-center">
-            <Coffee className="h-6 w-6" />
+            <img src="/logo.png" alt="Deli Coffee" className="h-full w-full object-cover" />
           </span>
           <div>
             <div className="font-script text-3xl text-[#3B2412] leading-none">
@@ -98,7 +98,10 @@ const LoginPage = () => {
         </div>
 
         <div className="mt-6 text-center">
-          <Link to="/" className="text-xs text-[#3B2412]/60 hover:text-[#1B7A43]">
+          <Link
+            to="/"
+            className="text-xs text-[#3B2412]/60 hover:text-[#1B7A43]"
+          >
             ← Kembali ke website
           </Link>
         </div>

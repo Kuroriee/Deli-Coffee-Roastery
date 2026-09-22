@@ -53,7 +53,11 @@ const AdminLayout = () => {
   const toggleSound = () => {
     setSoundOn((v) => {
       const next = !v;
-      try { localStorage.setItem("deli_admin_sound", next ? "1" : "0"); } catch (err) { console.warn("gagal simpan pref suara", err); }
+      try {
+        localStorage.setItem("deli_admin_sound", next ? "1" : "0");
+      } catch (err) {
+        console.warn("gagal simpan pref suara", err);
+      }
       if (next) playBell(); // sample chime as feedback
       return next;
     });
@@ -103,13 +107,20 @@ const AdminLayout = () => {
   return (
     <div className="min-h-screen bg-[#F6EFE4] flex">
       <aside className="w-64 bg-[#3B2412] text-[#F6EFE4] flex flex-col fixed h-full">
-        <Link to="/admin" className="flex items-center gap-3 px-5 py-5 border-b border-[#F6EFE4]/10">
+        <Link
+          to="/admin"
+          className="flex items-center gap-3 px-5 py-5 border-b border-[#F6EFE4]/10"
+        >
           <span className="h-10 w-10 rounded-full bg-[#F6EFE4] text-[#3B2412] flex items-center justify-center">
-            <Coffee className="h-5 w-5" />
+            <img src="/logo.png" alt="Deli Coffee" className="h-full w-full object-cover" />
           </span>
           <div>
-            <div className="font-script text-2xl leading-none">Deli Coffee<span className="text-[#C9A227]">*</span></div>
-            <div className="text-[10px] tracking-[0.25em] uppercase text-[#F6EFE4]/60">Admin Panel</div>
+            <div className="font-script text-2xl leading-none">
+              Deli Coffee<span className="text-[#C9A227]">*</span>
+            </div>
+            <div className="text-[10px] tracking-[0.25em] uppercase text-[#F6EFE4]/60">
+              Admin Panel
+            </div>
           </div>
         </Link>
 
@@ -144,11 +155,19 @@ const AdminLayout = () => {
             type="button"
             onClick={toggleSound}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#F6EFE4]/70 hover:bg-[#5A3A22] hover:text-[#F6EFE4] transition-colors mt-2"
-            title={soundOn ? "Matikan notifikasi suara" : "Nyalakan notifikasi suara"}
+            title={
+              soundOn ? "Matikan notifikasi suara" : "Nyalakan notifikasi suara"
+            }
           >
-            {soundOn ? <Bell className="h-4 w-4 text-[#C9A227]" /> : <BellOff className="h-4 w-4" />}
+            {soundOn ? (
+              <Bell className="h-4 w-4 text-[#C9A227]" />
+            ) : (
+              <BellOff className="h-4 w-4" />
+            )}
             <span className="flex-1 text-left">Notifikasi suara</span>
-            <span className={`text-[10px] uppercase tracking-widest ${soundOn ? "text-[#C9A227]" : "text-[#F6EFE4]/40"}`}>
+            <span
+              className={`text-[10px] uppercase tracking-widest ${soundOn ? "text-[#C9A227]" : "text-[#F6EFE4]/40"}`}
+            >
               {soundOn ? "ON" : "OFF"}
             </span>
           </button>
@@ -157,7 +176,11 @@ const AdminLayout = () => {
         <div className="px-3 py-4 border-t border-[#F6EFE4]/10">
           <div className="flex items-center gap-3 px-2 py-2">
             {user.picture ? (
-              <img src={user.picture} alt={user.name} className="h-9 w-9 rounded-full" />
+              <img
+                src={user.picture}
+                alt={user.name}
+                className="h-9 w-9 rounded-full"
+              />
             ) : (
               <div className="h-9 w-9 rounded-full bg-[#C9A227] text-[#2A1D0B] flex items-center justify-center text-sm font-bold">
                 {(user.name || user.email || "?").charAt(0).toUpperCase()}
@@ -165,7 +188,9 @@ const AdminLayout = () => {
             )}
             <div className="leading-tight overflow-hidden">
               <div className="text-sm font-semibold truncate">{user.name}</div>
-              <div className="text-[10px] text-[#F6EFE4]/60 truncate">{user.email}</div>
+              <div className="text-[10px] text-[#F6EFE4]/60 truncate">
+                {user.email}
+              </div>
             </div>
           </div>
           <a
