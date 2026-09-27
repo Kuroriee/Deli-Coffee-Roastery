@@ -51,8 +51,8 @@ const LinksPage = () => {
     brand.tiktokShop && {
       key: "tiktokShop",
       href: brand.tiktokShop,
-      label: "TikTok Shop",
-      icon: TikTokIcon,
+      label: "TikTok Shop / Tokopedia",
+      icon: ShoppingBag,
     },
     brand.shopee && {
       key: "shopee",
