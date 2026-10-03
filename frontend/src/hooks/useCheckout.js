@@ -40,7 +40,7 @@ export const useCheckout = ({ items, zone, subtotal, shipping }) => {
   const submitOrder = useCallback(
     async (admin) => {
       if (!canSubmit) {
-        toast.error("Isi nama & nomor HP terlebih dahulu (min 2 & 6 karakter)");
+        toast.error("Isi nama dan nomor HP dulu ya, Kak (nama minimal 2 huruf, nomor minimal 6 angka)");
         return;
       }
       setSubmitting(true);
@@ -63,9 +63,9 @@ export const useCheckout = ({ items, zone, subtotal, shipping }) => {
           admin_name: admin.name,
         });
         window.open(res.wa_url, "_blank", "noopener,noreferrer");
-        toast.success("Pesanan dicatat. Membuka WhatsApp…");
+        toast.success("Mantap, Kak! Pesanan kakak kami proses ya, tunggu bentar ya Kak. Membuka WhatsApp…");
       } catch (e) {
-        toast.error(e?.response?.data?.detail || "Gagal membuat pesanan");
+        toast.error(e?.response?.data?.detail || "Waduh, pesanan belum berhasil dibuat. Coba lagi ya, Kak");
       } finally {
         setSubmitting(false);
       }

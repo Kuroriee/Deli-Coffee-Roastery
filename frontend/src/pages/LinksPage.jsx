@@ -1,4 +1,10 @@
-import { Instagram, ShoppingBag, MessageCircle, Star } from "lucide-react";
+import {
+  Instagram,
+  ShoppingBag,
+  MessageCircle,
+  Star,
+  MapPin,
+} from "lucide-react";
 import { useCatalog } from "../hooks/useCatalog";
 
 const TikTokIcon = (props) => (
@@ -13,8 +19,18 @@ const ShopeeIcon = (props) => (
   </svg>
 );
 
+const MAPS_URL =
+  "https://www.google.com/maps/place/Deli+Coffee/@3.573839,98.7122447,15z/data=!4m10!1m2!2m1!1sDeli+Coffee!3m6!1s0x303131458b869e1f:0xc3554b661c0c3245!8m2!3d3.5738391!4d98.7199695!16s%2Fg%2F11jk7tl636";
+
+// wa.me wajib pakai kode negara tanpa 0 di depan (08xx -> 628xx)
+const toWaNumber = (phone = "") => {
+  const d = phone.replace(/\D/g, "");
+  return d.startsWith("0") ? `62${d.slice(1)}` : d;
+};
+
 const LinksPage = () => {
   const { brand } = useCatalog();
+  const tiktokHandle = (brand.tiktok || "").match(/@([^/?]+)/)?.[1];
 
   // --- CTA utama (tombol solid, di atas) ---
   // Tambah/hapus/ubah baris di sini sesuka kamu.
@@ -22,14 +38,14 @@ const LinksPage = () => {
     {
       key: "katalog",
       href: "/katalog",
-      label: "Lihat Katalog Produk",
+      label: "Lihat Katalog Biji Kopi",
       icon: ShoppingBag,
       internal: true,
     },
     brand.admins?.[0] && {
       key: "whatsapp",
-      href: `https://wa.me/${(brand.admins[0].phone || "").replace(/\D/g, "")}`,
-      label: `Pesan via WhatsApp — ${brand.admins[0].name}`,
+      href: `https://wa.me/${toWaNumber(brand.admins[0].phone)}`,
+      label: `Chat ${brand.admins[0].name}, Tanya Kopi Apa Aja`,
       icon: MessageCircle,
     },
   ].filter(Boolean);
@@ -45,19 +61,19 @@ const LinksPage = () => {
     brand.tiktok && {
       key: "tiktok",
       href: brand.tiktok,
-      label: "TikTok",
+      label: tiktokHandle ? `TikTok — @${tiktokHandle}` : "TikTok",
       icon: TikTokIcon,
     },
     brand.tiktokShop && {
       key: "tiktokShop",
       href: brand.tiktokShop,
-      label: "TikTok Shop / Tokopedia",
+      label: "Beli di TikTok Shop / Tokopedia",
       icon: ShoppingBag,
     },
     brand.shopee && {
       key: "shopee",
       href: brand.shopee,
-      label: "Shopee",
+      label: "Beli di Shopee",
       icon: ShopeeIcon,
     },
   ].filter(Boolean);
@@ -83,6 +99,9 @@ const LinksPage = () => {
         <p className="font-serif-warm text-lg text-center mt-4 leading-snug">
           {brand.tagline || "Kopi Nusantara, Dipanggang di Kota Medan"}
         </p>
+        <p className="text-sm italic text-[#3B2412]/60 text-center mt-1">
+          Ngopi enak, tak perlu jauh-jauh.
+        </p>
 
         {brand.rating && (
           <div className="mt-3 flex items-center gap-1.5 text-sm">
@@ -97,17 +116,27 @@ const LinksPage = () => {
           </div>
         )}
 
+        <a
+          href={brand.mapsUrl || MAPS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-flex items-center gap-1.5 text-sm text-[#3B2412]/70 underline underline-offset-4 hover:text-[#1B7A43] transition-colors"
+        >
+          <MapPin className="h-3.5 w-3.5" />
+          Tengok kami di Google Maps
+        </a>
+
         <div className="w-full mt-9 flex flex-col gap-3">
           {primaryLinks.map((l) => {
             const Icon = l.icon;
             return (
-                <a
+              <a
                 key={l.key}
                 href={l.href}
                 target={l.internal ? undefined : "_blank"}
                 rel={l.internal ? undefined : "noopener noreferrer"}
                 className="w-full flex items-center gap-3 rounded-2xl bg-[#3B2412] text-[#F6EFE4] px-5 py-4 font-medium hover:bg-[#1B7A43] transition-colors"
-                >
+              >
                 <Icon className="h-5 w-5 shrink-0" />
                 <span>{l.label}</span>
               </a>
@@ -135,7 +164,8 @@ const LinksPage = () => {
           </div>
         )}
 
-        <a href="/"
+        <a
+          href="/"
           className="mt-10 text-sm text-[#3B2412]/60 hover:text-[#1B7A43] transition-colors"
         >
           ← Kembali ke website

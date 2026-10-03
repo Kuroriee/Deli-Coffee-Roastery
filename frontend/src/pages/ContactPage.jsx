@@ -5,7 +5,7 @@ import {
   Clock,
   MessageCircle,
   Star,
-  Navigation
+  Navigation,
 } from "lucide-react";
 import { buildWhatsAppLink } from "../mock/mock";
 import { useCatalog } from "../hooks/useCatalog";
@@ -33,8 +33,8 @@ const ContactPage = () => {
           </h1>
           <p className="mt-3 text-[#3B2412]/75 max-w-lg">
             Ingin lihat langsung prosesnya, atau sekadar ngobrol soal kopi? Kami
-            selalu senang kedatangan tamu. Ini semua cara untuk terhubung dengan
-            Deli Coffee.
+            senang kali kedatangan tamu. Ada yang mau ditanya, Kak? Chat aja,
+            cepat kami balasnya kok.
           </p>
 
           <div
@@ -72,7 +72,7 @@ const ContactPage = () => {
                 <a
                   href={buildWhatsAppLink(
                     a.phone,
-                    `Halo ${a.name}, saya ingin bertanya soal kopi Deli Coffee.`
+                    `Halo Kak ${a.name}, saya mau tanya soal kopi Deli Coffee ya.`
                   )}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -111,13 +111,15 @@ const ContactPage = () => {
                 <div className="text-xs text-[#3B2412]/60 uppercase tracking-widest">
                   Alamat Roastery
                 </div>
-                <div className="font-semibold text-[#3B2412]">{brand.address}</div>
+                <div className="font-semibold text-[#3B2412]">
+                  {brand.address}
+                </div>
                 <div className="text-xs text-[#3B2412]/60 mt-1">
                   Plus Code: {brand.plusCode}
                 </div>
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                    brand.address
+                    brand.address,
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -136,7 +138,9 @@ const ContactPage = () => {
                 <div className="text-xs text-[#3B2412]/60 uppercase tracking-widest">
                   Jam Operasional
                 </div>
-                <div className="font-semibold text-[#3B2412]">Setiap hari mulai 09.00 WIB</div>
+                <div className="font-semibold text-[#3B2412]">
+                  Setiap hari mulai 09.00 WIB
+                </div>
               </div>
             </div>
 
@@ -163,7 +167,7 @@ const ContactPage = () => {
               title="Peta Deli Coffee Roastery"
               className="w-full h-[420px] md:h-[560px]"
               src={`https://www.google.com/maps?q=${encodeURIComponent(
-                brand.address
+                brand.address,
               )}&output=embed`}
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
@@ -175,7 +179,7 @@ const ContactPage = () => {
             </div>
             <p className="text-sm text-[#F6EFE4]/80 mt-1">
               Ingin melihat proses roasting atau cupping? Beritahu kami dulu via
-              WhatsApp supaya kami bisa siapkan sesi kecil untuk Anda.
+              WhatsApp supaya kami bisa siapkan sesi kecil untuk Kakak.
             </p>
           </div>
         </div>

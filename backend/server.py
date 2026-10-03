@@ -327,7 +327,7 @@ def _build_wa_message(order: dict) -> str:
     def fr(n):
         return "Rp" + f"{int(n):,}".replace(",", ".")
     lines = [
-        f"Halo {order.get('admin_name') or 'Deli Coffee'}, saya ingin memesan:",
+        f"Halo Kak {order.get('admin_name') or 'Deli Coffee'}, saya mau pesan kopi ya:",
         "",
         f"Nama    : {order['customer_name']}",
         f"No. HP  : {order['customer_phone']}",
@@ -346,7 +346,7 @@ def _build_wa_message(order: dict) -> str:
         lines.append("")
         lines.append(f"Catatan: {order['customer_note']}")
     lines.append("")
-    lines.append("Mohon info ketersediaan & konfirmasi pengiriman. Terima kasih!")
+    lines.append("Mohon info stok & konfirmasi pengirimannya ya, Kak. Terima kasih banyak!")
     return "\n".join(lines)
 
 

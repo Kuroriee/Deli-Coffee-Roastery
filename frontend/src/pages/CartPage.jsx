@@ -19,9 +19,11 @@ const pickRecommendations = (products, items) => {
   const cartCategories = new Set(
     items
       .map((i) => products.find((p) => p.id === i.id)?.category)
-      .filter(Boolean)
+      .filter(Boolean),
   );
-  const eligible = products.filter((p) => !inCartIds.has(p.id) && p.active !== false);
+  const eligible = products.filter(
+    (p) => !inCartIds.has(p.id) && p.active !== false,
+  );
   const scored = eligible.map((p) => ({
     p,
     score:
@@ -34,7 +36,15 @@ const pickRecommendations = (products, items) => {
 };
 
 const CartPage = () => {
-  const { items, updateQty, removeItem, clear, addItem, total: subtotal, count } = useCart();
+  const {
+    items,
+    updateQty,
+    removeItem,
+    clear,
+    addItem,
+    total: subtotal,
+    count,
+  } = useCart();
   const { brand, zones, products } = useCatalog();
   const [zoneId, setZoneId] = useState(null);
 
@@ -45,22 +55,35 @@ const CartPage = () => {
     }
   }, [zones, zoneId]);
 
-  const zone = useMemo(() => zones.find((z) => z.id === zoneId) || null, [zones, zoneId]);
+  const zone = useMemo(
+    () => zones.find((z) => z.id === zoneId) || null,
+    [zones, zoneId],
+  );
   const shipping = zone?.cost || 0;
   const total = subtotal + shipping;
   const admins = brand.admins || [];
 
-  const { customer, setCustomer, submitting, canSubmit, submitOrder } = useCheckout({
-    items,
-    zone,
-    subtotal,
-    shipping,
-  });
+  const { customer, setCustomer, submitting, canSubmit, submitOrder } =
+    useCheckout({
+      items,
+      zone,
+      subtotal,
+      shipping,
+    });
 
-  const recommendations = useMemo(() => pickRecommendations(products, items), [products, items]);
+  const recommendations = useMemo(
+    () => pickRecommendations(products, items),
+    [products, items],
+  );
 
   const quickAdd = (p) => {
-    addItem({ id: p.id, name: p.name, price: p.price, qty: 1, process: p.process });
+    addItem({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      qty: 1,
+      process: p.process,
+    });
     toast.success(`${p.name} ditambahkan`);
   };
 
@@ -72,11 +95,12 @@ const CartPage = () => {
             Keranjang Pesanan
           </div>
           <h1 className="font-serif-warm text-4xl md:text-5xl mt-2 text-[#3B2412]">
-            Rangkuman pesanan Anda
+            Rangkuman pesanan Kakak
           </h1>
           <p className="mt-2 text-[#3B2412]/75 max-w-xl">
-            Isi kontak Anda, pilih zona pengiriman, lalu tekan “Pesan Sekarang” — ringkasan otomatis
-            terkirim ke WhatsApp admin dan tercatat di sistem kami.
+            Isi kontak Kakak, pilih zona pengiriman, lalu tekan “Pesan
+            Sekarang”. Ringkasannya langsung masuk ke WhatsApp admin dan
+            tercatat di sistem kami.
           </p>
         </div>
         {items.length > 0 && (
@@ -95,10 +119,18 @@ const CartPage = () => {
       ) : (
         <div className="mt-10 grid gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-4">
-            <CartItems items={items} updateQty={updateQty} removeItem={removeItem} />
+            <CartItems
+              items={items}
+              updateQty={updateQty}
+              removeItem={removeItem}
+            />
             <Recommendations items={recommendations} onAdd={quickAdd} />
             <CustomerForm customer={customer} onChange={setCustomer} />
-            <ShippingZoneSelector zones={zones} zoneId={zoneId} onSelect={setZoneId} />
+            <ShippingZoneSelector
+              zones={zones}
+              zoneId={zoneId}
+              onSelect={setZoneId}
+            />
           </div>
           <OrderSummary
             subtotal={subtotal}
@@ -123,9 +155,11 @@ const EmptyCart = () => (
     <div className="h-14 w-14 mx-auto rounded-full bg-[#3B2412] text-[#F6EFE4] flex items-center justify-center">
       <ShoppingBag className="h-6 w-6" />
     </div>
-    <h2 className="mt-4 font-serif-warm text-2xl text-[#3B2412]">Keranjang masih kosong</h2>
+    <h2 className="mt-4 font-serif-warm text-2xl text-[#3B2412]">
+      Keranjang masih kosong
+    </h2>
     <p className="mt-2 text-[#3B2412]/70">
-      Yuk pilih kopi favorit Anda dulu, lalu kembali ke sini untuk memesan.
+      Yuk pilih kopi favorit Kakak dulu, baru balik ke sini untuk memesan.
     </p>
     <Link
       to="/katalog"
